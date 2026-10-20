@@ -85,8 +85,8 @@ function Mancha({ continente, paises, limites }: { continente: NombreDeContinent
   const ancho = ANCHO_DEL_PAIS + 2 * MARGEN_DEL_CONTINENTE;
   const alto = ALTO_DEL_PAIS + 2 * MARGEN_DEL_CONTINENTE;
   const triangulos = paises.flatMap((pais) => {
-    const vecinos = limites.flatMap(([a, b]) => (a === pais ? [b] : b === pais ? [a] : []));
-    return vecinos.flatMap((b, i) => vecinos.slice(i + 1).map((c) => [pais, b, c]));
+    const limitrofes = limites.flatMap(([a, b]) => (a === pais ? [b] : b === pais ? [a] : []));
+    return limitrofes.flatMap((b, i) => limitrofes.slice(i + 1).map((c) => [pais, b, c]));
   });
   return (
     <g fill={color} stroke={color} strokeWidth={alto} strokeLinecap="round">
