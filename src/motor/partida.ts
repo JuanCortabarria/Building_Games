@@ -1,4 +1,4 @@
-import type { FuenteDeAzar } from "./azar";
+import type { EstadoDeAzar, FuenteDeAzar } from "./azar";
 import { CONTINENTES, PAISES, PARES_LIMITROFES, type NombreDeContinente, type NombreDePais } from "./mapa";
 
 export const COLORES = ["azul", "rojo", "negro", "amarillo", "verde", "magenta"] as const;
@@ -20,6 +20,8 @@ export interface EstadoDePartida {
   /** La posición en el orden de juego del jugador en turno. */
   turno: number;
   ejercitosPorIncorporar: number;
+  /** Dónde quedó la fuente de azar, para que una partida restaurada siga la misma secuencia. */
+  azar: EstadoDeAzar;
 }
 
 export interface Ronda {
@@ -96,12 +98,18 @@ export function crearPartida(
     ronda,
     turno: 0,
     ejercitosPorIncorporar: ejercitosDeLaRonda(ronda),
+    azar: azar.estado(),
   };
   return { ok: true, partida: partidaDesde(estado) };
 }
 
-export function restaurarPartida(estado: EstadoDePartida, _azar: FuenteDeAzar): ResultadoDePartida {
-  return { ok: true, partida: partidaDesde(structuredClone(estado)) };
+/**
+ * Continúa una partida desde un estado guardado. El azar sigue por la fuente recibida:
+ * para que siga la misma secuencia que antes de guardar, tiene que ser la fuente
+ * reanudada desde `estado.azar` (ver `reanudarFuente`).
+ */
+export function restaurarPartida(estado: EstadoDePartida, azar: FuenteDeAzar): ResultadoDePartida {
+  return { ok: true, partida: partidaDesde({ ...structuredClone(estado), azar: azar.estado() }) };
 }
 
 function jugadorEnTurno(estado: EstadoDePartida): DatosDeJugador {

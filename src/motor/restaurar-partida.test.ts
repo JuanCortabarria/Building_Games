@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { crearPartida, restaurarPartida } from "./partida";
-import { fuenteFija } from "./azar";
+import { crearPartida, restaurarPartida, type Partida } from "./partida";
+import type { NombreDePais } from "./mapa";
+import { fuenteConSemilla, fuenteFija, reanudarFuente } from "./azar";
 import { partidaDe } from "./ayudas-de-test";
 
 describe("el estado de una partida", () => {
@@ -76,6 +77,66 @@ describe("el estado de una partida", () => {
     expect(restaurada.paises().find((pais) => pais.nombre === "Argentina")?.ejercitos).toBe(1);
   });
 });
+
+describe("el azar de una partida guardada", () => {
+  it("el estado de una partida lleva la semilla de su fuente de azar", () => {
+    const partida = partidaDe(crearPartida(ANA_Y_BETO, fuenteConSemilla(2026)));
+
+    expect(partida.estado().azar.semilla).toBe(2026);
+  });
+
+  it("la fuente reanudada desde el estado guardado da el mismo sorteo que la fuente original", () => {
+    const azarOriginal = fuenteConSemilla(2026);
+    const partida = partidaDe(crearPartida(ANA_Y_BETO, azarOriginal));
+    const estadoGuardado = JSON.parse(JSON.stringify(partida.estado()));
+
+    const azarReanudado = reanudarFuente(estadoGuardado.azar);
+
+    expect(azarReanudado.sortearOrden(SEIS_JUGADORES)).toEqual(azarOriginal.sortearOrden(SEIS_JUGADORES));
+  });
+
+  it("la fuente reanudada no vuelve al principio de la secuencia: sigue desde donde quedó al crear la partida", () => {
+    const partida = partidaDe(crearPartida(ANA_Y_BETO, fuenteConSemilla(2026)));
+    const estadoGuardado = JSON.parse(JSON.stringify(partida.estado()));
+
+    const azarReanudado = reanudarFuente(estadoGuardado.azar);
+
+    expect(azarReanudado.sortearOrden(SEIS_JUGADORES)).not.toEqual(fuenteConSemilla(2026).sortearOrden(SEIS_JUGADORES));
+  });
+
+  it("una partida restaurada sigue con la fuente de azar que recibe al restaurarla", () => {
+    const estadoGuardado = partidaDe(crearPartida(ANA_Y_BETO, fuenteConSemilla(2026))).estado();
+
+    const restaurada = partidaDe(restaurarPartida(estadoGuardado, fuenteConSemilla(7)));
+
+    expect(restaurada.estado().azar).toEqual({ semilla: 7, avance: 0 });
+  });
+
+  it("una partida con semilla, guardada a mitad de un turno y restaurada con su fuente reanudada, queda igual a la original", () => {
+    let original = partidaDe(crearPartida(ANA_Y_BETO, fuenteConSemilla(2026)));
+    original = partidaDe(original.aplicar({ tipo: "incorporar", pais: unPaisDelJugadorEnTurno(original), cantidad: 5 }));
+    original = partidaDe(original.aplicar({ tipo: "pasarTurno" }));
+    original = partidaDe(original.aplicar({ tipo: "incorporar", pais: unPaisDelJugadorEnTurno(original), cantidad: 2 }));
+    const estadoGuardado = JSON.parse(JSON.stringify(original.estado()));
+
+    const restaurada = partidaDe(restaurarPartida(estadoGuardado, reanudarFuente(estadoGuardado.azar)));
+
+    expect(restaurada.ejercitosPorIncorporar()).toBe(3);
+    expect(restaurada.estado()).toEqual(original.estado());
+  });
+});
+
+function unPaisDelJugadorEnTurno(partida: Partida): NombreDePais {
+  const { color } = partida.jugadorEnTurno();
+  return partida.paises().find((pais) => pais.ocupante === color)!.nombre;
+}
+
+const SEIS_JUGADORES = ["Ana", "Beto", "Caro", "Dani", "Eli", "Fede"];
+
+const ANA_Y_BETO = [
+  { nombre: "Ana", color: "azul" },
+  { nombre: "Beto", color: "rojo" },
+] as const;
 
 /** Ana y Beto, en ese orden de juego. Argentina es de Ana. */
 function partidaDeDos() {
