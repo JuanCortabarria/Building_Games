@@ -34,6 +34,9 @@ describe("crear una partida", () => {
 
   it("no se puede crear una partida con menos de 2 ni con más de 6 jugadores", () => {
     const unJugador = crearPartida([{ nombre: "Ana", color: "azul" }], fuenteFija());
+    // Hay solo 6 colores, así que el séptimo jugador repite el azul. El test espera
+    // el error de cantidad, no el de color: si el motor cambiara el orden de las
+    // validaciones, este test fallaría en vez de dar un falso positivo.
     const sieteJugadores = crearPartida(
       [
         { nombre: "Ana", color: "azul" },
@@ -65,6 +68,38 @@ describe("crear una partida", () => {
     );
 
     expect(resultado).toEqual({ ok: false, error: expect.stringMatching(/verde/) });
+  });
+
+  it("todo jugador tiene que tener un nombre", () => {
+    const sinNombre = crearPartida(
+      [
+        { nombre: "Ana", color: "azul" },
+        { nombre: "", color: "rojo" },
+      ],
+      fuenteFija(),
+    );
+    const soloEspacios = crearPartida(
+      [
+        { nombre: "   ", color: "azul" },
+        { nombre: "Beto", color: "rojo" },
+      ],
+      fuenteFija(),
+    );
+
+    expect(sinNombre).toEqual({ ok: false, error: "Todo jugador tiene que tener un nombre, y el rojo no lo tiene." });
+    expect(soloEspacios).toEqual({ ok: false, error: "Todo jugador tiene que tener un nombre, y el azul no lo tiene." });
+  });
+
+  it("dos jugadores pueden llamarse igual, porque se distinguen por el color", () => {
+    const resultado = crearPartida(
+      [
+        { nombre: "Ana", color: "azul" },
+        { nombre: "Ana", color: "rojo" },
+      ],
+      fuenteFija(),
+    );
+
+    expect(resultado.ok).toBe(true);
   });
 
   it("los colores disponibles son los que todavía no eligió ningún jugador", () => {

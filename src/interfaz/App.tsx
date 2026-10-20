@@ -9,7 +9,7 @@ export function App() {
   return (
     <main>
       <h1>TEG</h1>
-      {partida ? <VistaDePartida partida={partida} /> : <CrearPartida alCrear={setPartida} />}
+      {partida ? <VistaDePartida partida={partida} alCambiar={setPartida} /> : <CrearPartida alCrear={setPartida} />}
     </main>
   );
 }
