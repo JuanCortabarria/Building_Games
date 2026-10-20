@@ -85,23 +85,26 @@ describe("el azar de una partida guardada", () => {
     expect(partida.estado().azar.semilla).toBe(2026);
   });
 
-  it("la fuente reanudada desde el estado guardado da el mismo sorteo que la fuente original", () => {
+  it("la fuente reanudada desde el estado guardado sortea lo mismo que la fuente original", () => {
     const azarOriginal = fuenteConSemilla(2026);
     const partida = partidaDe(crearPartida(ANA_Y_BETO, azarOriginal));
     const estadoGuardado = JSON.parse(JSON.stringify(partida.estado()));
 
-    const azarReanudado = reanudarFuente(estadoGuardado.azar);
+    const conLaOriginal = partidaDe(crearPartida(SEIS_JUGADORES, azarOriginal));
+    const conLaReanudada = partidaDe(crearPartida(SEIS_JUGADORES, reanudarFuente(estadoGuardado.azar)));
 
-    expect(azarReanudado.sortearOrden(SEIS_JUGADORES)).toEqual(azarOriginal.sortearOrden(SEIS_JUGADORES));
+    expect(conLaReanudada.ordenDeJuego()).toEqual(conLaOriginal.ordenDeJuego());
+    expect(conLaReanudada.paises()).toEqual(conLaOriginal.paises());
   });
 
   it("la fuente reanudada no vuelve al principio de la secuencia: sigue desde donde quedó al crear la partida", () => {
     const partida = partidaDe(crearPartida(ANA_Y_BETO, fuenteConSemilla(2026)));
     const estadoGuardado = JSON.parse(JSON.stringify(partida.estado()));
 
-    const azarReanudado = reanudarFuente(estadoGuardado.azar);
+    const conLaReanudada = partidaDe(crearPartida(SEIS_JUGADORES, reanudarFuente(estadoGuardado.azar)));
+    const desdeElPrincipio = partidaDe(crearPartida(SEIS_JUGADORES, fuenteConSemilla(2026)));
 
-    expect(azarReanudado.sortearOrden(SEIS_JUGADORES)).not.toEqual(fuenteConSemilla(2026).sortearOrden(SEIS_JUGADORES));
+    expect(conLaReanudada.paises()).not.toEqual(desdeElPrincipio.paises());
   });
 
   it("una partida restaurada sigue con la fuente de azar que recibe al restaurarla", () => {
@@ -131,7 +134,14 @@ function unPaisDelJugadorEnTurno(partida: Partida): NombreDePais {
   return partida.paises().find((pais) => pais.ocupante === color)!.nombre;
 }
 
-const SEIS_JUGADORES = ["Ana", "Beto", "Caro", "Dani", "Eli", "Fede"];
+const SEIS_JUGADORES = [
+  { nombre: "Ana", color: "azul" },
+  { nombre: "Beto", color: "rojo" },
+  { nombre: "Caro", color: "negro" },
+  { nombre: "Dani", color: "amarillo" },
+  { nombre: "Eli", color: "verde" },
+  { nombre: "Fede", color: "magenta" },
+] as const;
 
 const ANA_Y_BETO = [
   { nombre: "Ana", color: "azul" },
