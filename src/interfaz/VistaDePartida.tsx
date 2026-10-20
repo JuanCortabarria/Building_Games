@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Accion, Color, Partida, Ronda } from "../motor/partida";
 import { ESTILO_DE_COLOR } from "./colores";
+import { MapaEsquematico } from "./MapaEsquematico";
 
 const NOMBRE_DE_LA_RONDA: Record<Ronda["tipo"], string> = {
   inicial: "Ronda inicial",
@@ -62,35 +63,12 @@ export function VistaDePartida({ partida, alCambiar }: { partida: Partida; alCam
         </ol>
       </section>
       <section>
-        <h2>Países</h2>
-        <div className="continentes">
-          {partida.continentes().map((continente) => (
-            <div key={continente.nombre} className="continente">
-              <h3>
-                {continente.nombre} <small>(+{continente.ejercitosExtra})</small>
-              </h3>
-              <ul>
-                {partida
-                  .paises()
-                  .filter((pais) => pais.continente === continente.nombre)
-                  .map((pais) => (
-                    <li key={pais.nombre}>
-                      <button
-                        type="button"
-                        className="pais"
-                        style={{ background: ESTILO_DE_COLOR[pais.ocupante].fondo, color: ESTILO_DE_COLOR[pais.ocupante].texto }}
-                        title={`${pais.nombre}: ${nombreDe(pais.ocupante)}, ${pais.ejercitos} ejército(s)`}
-                        onClick={() => aplicar({ tipo: "incorporar", pais: pais.nombre, cantidad: 1 })}
-                      >
-                        <span>{pais.nombre}</span>
-                        <strong>{pais.ejercitos}</strong>
-                      </button>
-                    </li>
-                  ))}
-              </ul>
-            </div>
-          ))}
-        </div>
+        <h2>Mapa</h2>
+        <MapaEsquematico
+          partida={partida}
+          nombreDe={nombreDe}
+          alElegirPais={(pais) => aplicar({ tipo: "incorporar", pais, cantidad: 1 })}
+        />
       </section>
     </>
   );
