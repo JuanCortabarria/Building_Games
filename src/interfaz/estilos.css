@@ -49,34 +49,67 @@ button.principal {
   border: 1px solid #0003;
 }
 
-.continentes {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 16px;
+.mapa {
+  display: block;
+  /* El mapa es más ancho que el resto de la página y entra entero en la altura de la pantalla. */
+  width: min(1520px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  margin-left: 50%;
+  transform: translateX(-50%);
+  font-family: system-ui, sans-serif;
+  user-select: none;
 }
 
-.continente ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  gap: 4px;
+.mapa .nombre-de-continente {
+  font-size: 17px;
+  font-weight: bold;
 }
 
-.continente h3 {
-  margin: 0 0 8px;
+.mapa .rotulo-de-borde {
+  font-size: 12px;
+  fill: #5b6470;
 }
 
-.pais {
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
-  margin: 0;
-  padding: 4px 8px;
-  border: none;
-  border-radius: 4px;
-  font: inherit;
-  text-align: left;
+.limite {
+  fill: none;
+  stroke: #5b6470;
+  stroke-width: 2;
+}
+
+.limite.entre-continentes {
+  stroke-dasharray: 7 5;
+}
+
+.pais-del-mapa {
+  cursor: pointer;
+}
+
+.pais-del-mapa rect {
+  stroke: #0006;
+  stroke-width: 1;
+}
+
+.pais-del-mapa:hover rect {
+  stroke: #000;
+  stroke-width: 2.5;
+}
+
+.pais-del-mapa:focus {
+  outline: none;
+}
+
+.pais-del-mapa:focus-visible rect {
+  stroke: #000;
+  stroke-width: 4;
+}
+
+.nombre-de-pais {
+  font-size: 14px;
+}
+
+.ejercitos-de-pais {
+  font-size: 17px;
+  font-weight: bold;
 }
 
 .turno {
