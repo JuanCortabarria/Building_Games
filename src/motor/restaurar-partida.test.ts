@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { crearPartida, restaurarPartida, type Partida } from "./partida";
+import { crearPartida, restaurarPartida } from "./partida";
 import { fuenteFija } from "./azar";
-
-function partidaDe(resultado: { ok: true; partida: Partida } | { ok: false; error: string }): Partida {
-  if (!resultado.ok) throw new Error(`Se esperaba una partida y vino el error: ${resultado.error}`);
-  return resultado.partida;
-}
+import { partidaDe } from "./ayudas-de-test";
 
 describe("restaurar una partida", () => {
   it("restaurar el estado de una partida da una partida igual a la original", () => {
@@ -16,7 +12,7 @@ describe("restaurar una partida", () => {
           { nombre: "Beto", color: "rojo" },
           { nombre: "Caro", color: "negro" },
         ],
-        fuenteFija({ mezclas: [[1, 2, 0]] }),
+        fuenteFija({ ordenDeJuego: [1, 2, 0] }),
       ),
     );
     const estadoGuardado = JSON.parse(JSON.stringify(original.estado()));

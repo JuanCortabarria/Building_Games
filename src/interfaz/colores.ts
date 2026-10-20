@@ -1,7 +1,5 @@
 import type { Color } from "../motor/partida";
 
-export const COLORES: readonly Color[] = ["azul", "rojo", "negro", "amarillo", "verde", "magenta"];
-
 export const ESTILO_DE_COLOR: Record<Color, { fondo: string; texto: string }> = {
   azul: { fondo: "#1f5fbf", texto: "#ffffff" },
   rojo: { fondo: "#c62828", texto: "#ffffff" },

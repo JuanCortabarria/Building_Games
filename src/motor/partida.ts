@@ -1,7 +1,10 @@
 import type { FuenteDeAzar } from "./azar";
 import { CONTINENTES, PAISES, PARES_LIMITROFES, type NombreDeContinente, type NombreDePais } from "./mapa";
 
-export type Color = "azul" | "rojo" | "negro" | "amarillo" | "verde" | "magenta";
+export const COLORES = ["azul", "rojo", "negro", "amarillo", "verde", "magenta"] as const;
+export type Color = (typeof COLORES)[number];
+
+export const CANTIDAD_DE_JUGADORES = { minima: 2, maxima: 6 } as const;
 
 export interface DatosDeJugador {
   nombre: string;
@@ -28,7 +31,7 @@ export interface DatosDeContinente {
   ejercitosExtra: number;
 }
 
-export type Resultado<T> = { ok: true; partida: T } | { ok: false; error: string };
+export type ResultadoDePartida = { ok: true; partida: Partida } | { ok: false; error: string };
 
 export interface Partida {
   /** El estado como dato simple, para guardarlo y restaurarlo tal cual. */
@@ -39,12 +42,21 @@ export interface Partida {
   limitrofesDe(pais: NombreDePais): readonly NombreDePais[];
 }
 
+/** Los colores que todavía no eligió ninguno de los jugadores dados. */
+export function coloresDisponibles(jugadores: readonly { color: Color }[]): Color[] {
+  return COLORES.filter((color) => !jugadores.some((jugador) => jugador.color === color));
+}
+
 export function crearPartida(
   jugadores: readonly DatosDeJugador[],
   azar: FuenteDeAzar,
-): Resultado<Partida> {
-  if (jugadores.length < 2 || jugadores.length > 6) {
-    return { ok: false, error: `Una partida es de entre 2 y 6 jugadores, y se cargaron ${jugadores.length}.` };
+): ResultadoDePartida {
+  const { minima, maxima } = CANTIDAD_DE_JUGADORES;
+  if (jugadores.length < minima || jugadores.length > maxima) {
+    return {
+      ok: false,
+      error: `Una partida es de entre ${minima} y ${maxima} jugadores, y se cargaron ${jugadores.length}.`,
+    };
   }
   const colorRepetido = jugadores.find(
     (jugador, i) => jugadores.findIndex((otro) => otro.color === jugador.color) !== i,
@@ -52,16 +64,16 @@ export function crearPartida(
   if (colorRepetido) {
     return { ok: false, error: `Dos jugadores no pueden tener el mismo color, y el ${colorRepetido} está repetido.` };
   }
-  const ordenDeJuego = azar.mezclar(jugadores);
+  const ordenDeJuego = azar.sortearOrden(jugadores);
   const paises = {} as EstadoDePartida["paises"];
-  azar.mezclar(PAISES).forEach((pais, i) => {
-    paises[pais.nombre] = { ocupante: ordenDeJuego[i % ordenDeJuego.length]!.color, ejercitos: 1 };
+  azar.mezclarPaises(PAISES.map((pais) => pais.nombre)).forEach((pais, i) => {
+    paises[pais] = { ocupante: ordenDeJuego[i % ordenDeJuego.length]!.color, ejercitos: 1 };
   });
   const estado: EstadoDePartida = { jugadores: ordenDeJuego, paises };
   return { ok: true, partida: partidaDesde(estado) };
 }
 
-export function restaurarPartida(estado: EstadoDePartida, _azar: FuenteDeAzar): Resultado<Partida> {
+export function restaurarPartida(estado: EstadoDePartida, _azar: FuenteDeAzar): ResultadoDePartida {
   return { ok: true, partida: partidaDesde(estado) };
 }
 

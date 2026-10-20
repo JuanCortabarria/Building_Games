@@ -12,7 +12,7 @@ export function VistaDePartida({ partida }: { partida: Partida }) {
         <ol className="orden">
           {jugadores.map((jugador) => (
             <li key={jugador.color}>
-              <Ficha color={jugador.color} />
+              <MuestraDeColor color={jugador.color} />
               {jugador.nombre} ({jugador.color})
             </li>
           ))}
@@ -50,6 +50,6 @@ export function VistaDePartida({ partida }: { partida: Partida }) {
   );
 }
 
-function Ficha({ color }: { color: Color }) {
-  return <span className="ficha" style={{ background: ESTILO_DE_COLOR[color].fondo }} aria-hidden />;
+function MuestraDeColor({ color }: { color: Color }) {
+  return <span className="muestra-de-color" style={{ background: ESTILO_DE_COLOR[color].fondo }} aria-hidden />;
 }

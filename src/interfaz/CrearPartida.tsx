@@ -1,7 +1,14 @@
 import { useState } from "react";
 import { fuenteConSemilla } from "../motor/azar";
-import { crearPartida, type Color, type DatosDeJugador, type Partida } from "../motor/partida";
-import { COLORES } from "./colores";
+import {
+  CANTIDAD_DE_JUGADORES,
+  COLORES,
+  coloresDisponibles,
+  crearPartida,
+  type Color,
+  type DatosDeJugador,
+  type Partida,
+} from "../motor/partida";
 
 const JUGADORES_INICIALES: DatosDeJugador[] = [
   { nombre: "", color: "azul" },
@@ -17,7 +24,7 @@ export function CrearPartida({ alCrear }: { alCrear: (partida: Partida) => void 
 
   const agregar = () =>
     setJugadores((actuales) => {
-      const libre = COLORES.find((color) => !actuales.some((jugador) => jugador.color === color));
+      const [libre] = coloresDisponibles(actuales);
       return libre ? [...actuales, { nombre: "", color: libre }] : actuales;
     });
 
@@ -33,38 +40,37 @@ export function CrearPartida({ alCrear }: { alCrear: (partida: Partida) => void 
     <section>
       <h2>Nueva partida</h2>
       <ol className="jugadores">
-        {jugadores.map((jugador, i) => (
-          <li key={i}>
-            <input
-              aria-label={`Nombre del jugador ${i + 1}`}
-              placeholder={`Jugador ${i + 1}`}
-              value={jugador.nombre}
-              onChange={(e) => cambiar(i, { nombre: e.target.value })}
-            />
-            <select
-              aria-label={`Color del jugador ${i + 1}`}
-              value={jugador.color}
-              onChange={(e) => cambiar(i, { color: e.target.value as Color })}
-            >
-              {COLORES.map((color) => (
-                <option
-                  key={color}
-                  value={color}
-                  disabled={jugadores.some((otro, j) => j !== i && otro.color === color)}
-                >
-                  {color}
-                </option>
-              ))}
-            </select>
-            {jugadores.length > 2 && (
-              <button type="button" onClick={() => quitar(i)}>
-                Quitar
-              </button>
-            )}
-          </li>
-        ))}
+        {jugadores.map((jugador, i) => {
+          const libres = coloresDisponibles(jugadores.filter((_, j) => j !== i));
+          return (
+            <li key={i}>
+              <input
+                aria-label={`Nombre del jugador ${i + 1}`}
+                placeholder={`Jugador ${i + 1}`}
+                value={jugador.nombre}
+                onChange={(e) => cambiar(i, { nombre: e.target.value })}
+              />
+              <select
+                aria-label={`Color del jugador ${i + 1}`}
+                value={jugador.color}
+                onChange={(e) => cambiar(i, { color: e.target.value as Color })}
+              >
+                {COLORES.map((color) => (
+                  <option key={color} value={color} disabled={!libres.includes(color)}>
+                    {color}
+                  </option>
+                ))}
+              </select>
+              {jugadores.length > CANTIDAD_DE_JUGADORES.minima && (
+                <button type="button" onClick={() => quitar(i)}>
+                  Quitar
+                </button>
+              )}
+            </li>
+          );
+        })}
       </ol>
-      {jugadores.length < 6 && (
+      {jugadores.length < CANTIDAD_DE_JUGADORES.maxima && (
         <button type="button" onClick={agregar}>
           Agregar jugador
         </button>

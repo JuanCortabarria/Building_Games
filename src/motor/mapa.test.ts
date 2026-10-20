@@ -1,17 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { crearPartida, type Partida } from "./partida";
 import { fuenteFija } from "./azar";
+import { partidaDe } from "./ayudas-de-test";
 
 function unaPartida(): Partida {
-  const resultado = crearPartida(
-    [
-      { nombre: "Ana", color: "azul" },
-      { nombre: "Beto", color: "rojo" },
-    ],
-    fuenteFija(),
+  return partidaDe(
+    crearPartida(
+      [
+        { nombre: "Ana", color: "azul" },
+        { nombre: "Beto", color: "rojo" },
+      ],
+      fuenteFija(),
+    ),
   );
-  if (!resultado.ok) throw new Error(resultado.error);
-  return resultado.partida;
 }
 
 describe("el mapa", () => {

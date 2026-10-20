@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { crearPartida } from "./partida";
+import { coloresDisponibles, crearPartida, type Color } from "./partida";
 import { fuenteFija } from "./azar";
+import { partidaDe } from "./ayudas-de-test";
 
 describe("crear una partida", () => {
   it("se puede crear una partida con 2 jugadores", () => {
@@ -8,6 +9,22 @@ describe("crear una partida", () => {
       [
         { nombre: "Ana", color: "azul" },
         { nombre: "Beto", color: "rojo" },
+      ],
+      fuenteFija(),
+    );
+
+    expect(resultado.ok).toBe(true);
+  });
+
+  it("se puede crear una partida con 6 jugadores", () => {
+    const resultado = crearPartida(
+      [
+        { nombre: "Ana", color: "azul" },
+        { nombre: "Beto", color: "rojo" },
+        { nombre: "Caro", color: "negro" },
+        { nombre: "Dani", color: "amarillo" },
+        { nombre: "Eli", color: "verde" },
+        { nombre: "Fede", color: "magenta" },
       ],
       fuenteFija(),
     );
@@ -50,6 +67,15 @@ describe("crear una partida", () => {
     expect(resultado).toEqual({ ok: false, error: expect.stringMatching(/verde/) });
   });
 
+  it("los colores disponibles son los que todavía no eligió ningún jugador", () => {
+    const elegidos = [
+      { nombre: "Ana", color: "azul" },
+      { nombre: "Beto", color: "verde" },
+    ] as const;
+
+    expect(coloresDisponibles(elegidos)).toEqual(["rojo", "negro", "amarillo", "magenta"]);
+  });
+
   it("el orden de juego lo sortea la fuente de azar", () => {
     const resultado = crearPartida(
       [
@@ -58,7 +84,7 @@ describe("crear una partida", () => {
         { nombre: "Caro", color: "negro" },
       ],
       // El sorteo del orden pone primero a la tercera anotada, después a la primera y después al segundo.
-      fuenteFija({ mezclas: [[2, 0, 1]] }),
+      fuenteFija({ ordenDeJuego: [2, 0, 1] }),
     );
 
     expect(nombres(partidaDe(resultado).ordenDeJuego())).toEqual(["Caro", "Ana", "Beto"]);
@@ -74,17 +100,40 @@ describe("crear una partida", () => {
           { nombre: "Dani", color: "amarillo" },
         ],
         // El sorteo invierte el orden: juegan Dani, Caro, Beto y Ana.
-        fuenteFija({ mezclas: [[3, 2, 1, 0]] }),
+        fuenteFija({ ordenDeJuego: [3, 2, 1, 0] }),
       ),
     );
 
-    const paisesDe = (color: string) => partida.paises().filter((pais) => pais.ocupante === color).length;
+    const paisesDe = (color: Color) => partida.paises().filter((pais) => pais.ocupante === color).length;
     expect({
       Dani: paisesDe("amarillo"),
       Caro: paisesDe("negro"),
       Beto: paisesDe("rojo"),
       Ana: paisesDe("azul"),
     }).toEqual({ Dani: 13, Caro: 13, Beto: 12, Ana: 12 });
+  });
+
+  it("los países mezclados se reparten de a uno, en el orden de juego", () => {
+    const partida = partidaDe(
+      crearPartida(
+        [
+          { nombre: "Ana", color: "azul" },
+          { nombre: "Beto", color: "rojo" },
+          { nombre: "Caro", color: "negro" },
+          { nombre: "Dani", color: "amarillo" },
+        ],
+        fuenteFija({ primerosPaises: ["Java", "Alaska", "Chile", "Egipto", "Italia"] }),
+      ),
+    );
+
+    const ocupanteDe = (nombre: string) => partida.paises().find((pais) => pais.nombre === nombre)?.ocupante;
+    expect({
+      Java: ocupanteDe("Java"),
+      Alaska: ocupanteDe("Alaska"),
+      Chile: ocupanteDe("Chile"),
+      Egipto: ocupanteDe("Egipto"),
+      Italia: ocupanteDe("Italia"),
+    }).toEqual({ Java: "azul", Alaska: "rojo", Chile: "negro", Egipto: "amarillo", Italia: "azul" });
   });
 
   it("cada país empieza con 1 ejército", () => {
@@ -102,11 +151,6 @@ describe("crear una partida", () => {
     expect(conOtraCantidad).toEqual([]);
   });
 });
-
-function partidaDe<T>(resultado: { ok: true; partida: T } | { ok: false; error: string }): T {
-  if (!resultado.ok) throw new Error(`Se esperaba una partida y vino el error: ${resultado.error}`);
-  return resultado.partida;
-}
 
 function nombres(jugadores: readonly { nombre: string }[]): string[] {
   return jugadores.map((jugador) => jugador.nombre);
