@@ -23,7 +23,7 @@ function partidaDeTres(): Partida {
 
 describe("alternancia y rotación de las rondas", () => {
   it("después de las rondas iniciales se alternan ataque e incorporación, y cada incorporación la abre el siguiente al que abrió la anterior", () => {
-    expect(jugadas(partidaDeTres(), 7 * 3)).toEqual([
+    expect(turnosJugados(partidaDeTres(), 7 * 3)).toEqual([
       "inicial 1: Ana",
       "inicial 1: Beto",
       "inicial 1: Caro",
@@ -62,7 +62,7 @@ describe("jugadores destruidos", () => {
       enTurno: "Ana",
     });
 
-    expect(jugadas(partida, 3 + 3)).toEqual([
+    expect(turnosJugados(partida, 3 + 3)).toEqual([
       "ataque 1: Ana",
       "ataque 1: Beto",
       "ataque 1: Dani",
@@ -82,7 +82,7 @@ describe("jugadores destruidos", () => {
       enTurno: "Dani",
     });
 
-    expect(jugadas(partida, 1 + 3 + 3 + 1)).toEqual([
+    expect(turnosJugados(partida, 1 + 3 + 3 + 1)).toEqual([
       "ataque 1: Dani",
       "incorporación 1: Caro",
       "incorporación 1: Dani",
@@ -105,7 +105,7 @@ describe("jugadores destruidos", () => {
       enTurno: "Dani",
     });
 
-    expect(jugadas(partida, 2 + 3 + 3 + 1)).toEqual([
+    expect(turnosJugados(partida, 2 + 3 + 3 + 1)).toEqual([
       "ataque 2: Dani",
       "ataque 2: Ana",
       "incorporación 2: Caro",
@@ -253,7 +253,7 @@ function pasarAIncorporacionDeAna(paisesDeAna: NombreDePais[]): Partida {
 }
 
 /** Quién juega en qué ronda, durante la cantidad de turnos dada, desde el turno en curso. */
-function jugadas(partida: Partida, turnos: number): string[] {
+function turnosJugados(partida: Partida, turnos: number): string[] {
   const registro: string[] = [];
   for (let i = 0; i < turnos; i++) {
     registro.push(`${nombreDe(partida.ronda())}: ${partida.jugadorEnTurno().nombre}`);
