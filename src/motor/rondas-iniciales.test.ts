@@ -25,9 +25,9 @@ describe("rondas iniciales", () => {
   it("la partida empieza en la primera ronda inicial, con el turno del primero en el orden y 5 ejércitos por poner", () => {
     const partida = partidaDeTres();
 
-    expect(partida.ronda()).toEqual({ tipo: "inicial", numero: 1 });
+    expect(partida.ronda()).toEqual({ tipo: "incorporacion", inicial: true, numero: 1 });
     expect(partida.jugadorEnTurno()).toEqual({ nombre: "Ana", color: "azul" });
-    expect(partida.ejercitosPorIncorporar()).toBe(5);
+    expect(partida.ejercitosPorIncorporar()).toEqual({ generales: 5, porContinente: {} });
   });
 
   it("poner ejércitos en un país propio los suma al país y los descuenta de los que quedan", () => {
@@ -36,7 +36,7 @@ describe("rondas iniciales", () => {
     const despues = partidaDe(partida.aplicar({ tipo: "incorporar", pais: "Argentina", cantidad: 2 }));
 
     expect(ejercitosEn(despues, "Argentina")).toBe(3);
-    expect(despues.ejercitosPorIncorporar()).toBe(3);
+    expect(despues.ejercitosPorIncorporar()).toEqual({ generales: 3, porContinente: {} });
   });
 
   it("un jugador no puede poner ejércitos en un país que ocupa otro", () => {
@@ -93,9 +93,9 @@ describe("rondas iniciales", () => {
   it("al pasar el turno juega el siguiente en el orden, con 5 ejércitos por poner", () => {
     const partida = ponerYPasar(partidaDeTres(), "Argentina", 5);
 
-    expect(partida.ronda()).toEqual({ tipo: "inicial", numero: 1 });
+    expect(partida.ronda()).toEqual({ tipo: "incorporacion", inicial: true, numero: 1 });
     expect(partida.jugadorEnTurno()).toEqual({ nombre: "Beto", color: "rojo" });
-    expect(partida.ejercitosPorIncorporar()).toBe(5);
+    expect(partida.ejercitosPorIncorporar()).toEqual({ generales: 5, porContinente: {} });
   });
 
   it("cuando todos pusieron sus 5 ejércitos empieza la segunda ronda inicial, en el mismo orden, con 3 ejércitos", () => {
@@ -104,9 +104,9 @@ describe("rondas iniciales", () => {
     partida = ponerYPasar(partida, "Brasil", 5);
     partida = ponerYPasar(partida, "Chile", 5);
 
-    expect(partida.ronda()).toEqual({ tipo: "inicial", numero: 2 });
+    expect(partida.ronda()).toEqual({ tipo: "incorporacion", inicial: true, numero: 2 });
     expect(partida.jugadorEnTurno()).toEqual({ nombre: "Ana", color: "azul" });
-    expect(partida.ejercitosPorIncorporar()).toBe(3);
+    expect(partida.ejercitosPorIncorporar()).toEqual({ generales: 3, porContinente: {} });
   });
 
   it("en la segunda ronda inicial cada jugador pone 3 ejércitos", () => {
@@ -114,7 +114,7 @@ describe("rondas iniciales", () => {
     partida = ponerYPasar(partida, "Argentina", 3);
 
     expect(partida.jugadorEnTurno()).toEqual({ nombre: "Beto", color: "rojo" });
-    expect(partida.ejercitosPorIncorporar()).toBe(3);
+    expect(partida.ejercitosPorIncorporar()).toEqual({ generales: 3, porContinente: {} });
   });
 
   it("después de la segunda ronda inicial empieza la ronda de ataque 1, en el mismo orden, y cada jugador puede pasar el turno", () => {
@@ -125,8 +125,8 @@ describe("rondas iniciales", () => {
 
     const enTurno: string[] = [];
     for (let i = 0; i < 3; i++) {
-      expect(partida.ronda()).toEqual({ tipo: "ataque", numero: 1 });
-      expect(partida.ejercitosPorIncorporar()).toBe(0);
+      expect(partida.ronda()).toEqual({ tipo: "ataque", inicial: false, numero: 1 });
+      expect(partida.ejercitosPorIncorporar()).toEqual({ generales: 0, porContinente: {} });
       enTurno.push(partida.jugadorEnTurno().nombre);
       partida = partidaDe(partida.aplicar({ tipo: "pasarTurno" }));
     }
