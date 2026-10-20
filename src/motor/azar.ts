@@ -3,14 +3,37 @@ import type { NombreDePais } from "./mapa";
 export interface FuenteDeAzar {
   sortearOrden<T>(jugadores: readonly T[]): T[];
   mezclarPaises(paises: readonly NombreDePais[]): NombreDePais[];
+  /** En qué punto de su secuencia está la fuente, como dato simple para guardarlo con la partida. */
+  estado(): EstadoDeAzar;
+}
+
+/**
+ * El punto de la secuencia en que está una fuente de azar.
+ *
+ * - `semilla`: con la que arrancó la secuencia.
+ * - `avance`: cuántos números se sacaron de la secuencia desde la semilla.
+ */
+export interface EstadoDeAzar {
+  semilla: number;
+  avance: number;
 }
 
 /** Fuente de azar de la aplicación: la misma semilla da siempre la misma secuencia. */
 export function fuenteConSemilla(semilla: number): FuenteDeAzar {
-  let a = semilla >>> 0;
+  return reanudarFuente({ semilla, avance: 0 });
+}
+
+/** La fuente con semilla, retomada en el punto de su secuencia en que quedó. */
+export function reanudarFuente({ semilla, avance }: EstadoDeAzar): FuenteDeAzar {
   // mulberry32: un generador chico y determinista, con un número entre 0 y 1 por llamada.
+  // Cada llamada suma la misma constante a `a`, así que reanudar después de `avance`
+  // llamadas es sumarla `avance` veces de una (Math.imul se queda con los 32 bits de abajo).
+  const PASO = 0x6d2b79f5;
+  let a = ((semilla >>> 0) + Math.imul(avance, PASO)) >>> 0;
+  let sacados = avance;
   const siguiente = () => {
-    a = (a + 0x6d2b79f5) >>> 0;
+    sacados++;
+    a = (a + PASO) >>> 0;
     let t = a;
     t = Math.imul(t ^ (t >>> 15), t | 1);
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
@@ -25,7 +48,7 @@ export function fuenteConSemilla(semilla: number): FuenteDeAzar {
     }
     return mezclada;
   };
-  return { sortearOrden: mezclar, mezclarPaises: mezclar };
+  return { sortearOrden: mezclar, mezclarPaises: mezclar, estado: () => ({ semilla, avance: sacados }) };
 }
 
 /**
@@ -59,5 +82,7 @@ export function fuenteFija({
     mezclarPaises(paises) {
       return [...primerosPaises, ...paises.filter((pais) => !primerosPaises.includes(pais))];
     },
+    // No sigue una secuencia: su estado es siempre el del principio.
+    estado: () => ({ semilla: 0, avance: 0 }),
   };
 }
