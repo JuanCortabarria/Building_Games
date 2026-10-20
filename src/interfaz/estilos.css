@@ -1,0 +1,75 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #222;
+  background: #f4f1ea;
+}
+
+main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+button {
+  margin: 8px 8px 0 0;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+button.principal {
+  font-weight: bold;
+}
+
+.jugadores li {
+  margin-bottom: 6px;
+}
+
+.jugadores input,
+.jugadores select {
+  margin-right: 6px;
+  padding: 4px;
+}
+
+[role="alert"] {
+  color: #b00020;
+}
+
+.orden li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.ficha {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid #0003;
+}
+
+.continentes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.continente ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.continente h3 {
+  margin: 0 0 8px;
+}
+
+.pais {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
