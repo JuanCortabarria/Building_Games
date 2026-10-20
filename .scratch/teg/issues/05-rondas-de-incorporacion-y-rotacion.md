@@ -14,3 +14,11 @@
 - [ ] La cantidad a incorporar se calcula con los países que el jugador tiene al empezar su turno de incorporación.
 - [ ] Un jugador no puede pasar el turno de incorporación hasta poner todos sus ejércitos.
 - [ ] La pantalla muestra los ejércitos que quedan por poner, separados entre los generales y los de cada continente.
+
+## Comments
+
+**2026-10-20, pendientes del ticket 04:**
+
+- **Hoy a una ronda de ataque le sigue otra ronda de ataque.** Es provisorio, para que la partida no se trabe: está en `siguienteRonda`, en `src/motor/partida.ts`, con un comentario. Este ticket lo reemplaza por la alternancia con las rondas de incorporación.
+- **Decidir el tipo de ronda antes de empezar.** El motor expone `tipo: "inicial" | "ataque"`, pero el glosario dice que las rondas son de ataque o de incorporación, y que la ronda inicial es una de incorporación. La pantalla lo compensa con su propio texto, "incorporación (inicial)", en `TIPO_DE_LA_RONDA`, y eso es una regla dentro de la interfaz. Con el tipo `"incorporacion"` que suma este ticket, la pregunta "¿es de incorporación?" tendría dos respuestas posibles. Una opción es `{ tipo: "incorporacion", inicial: boolean }`, y que la pantalla solo traduzca nombres. La decisión es del usuario.
+- **El code review del 04 marcó Repeated Switches sobre `ronda.tipo`:** se decide en `incorporar`, `siguienteRonda` y `ejercitosDeLaRonda`, y en los dos textos de la pantalla. Este ticket pasa por todos esos lugares, así que es un buen momento para juntarlos.
