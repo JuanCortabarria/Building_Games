@@ -17,15 +17,27 @@ export interface EstadoDePartida {
   /** Quién ocupa cada país y con cuántos ejércitos. */
   paises: Record<NombreDePais, { ocupante: Color; ejercitos: number }>;
   ronda: Ronda;
+  /** La posición en el orden de juego del jugador que abrió la ronda en curso. */
+  abrioLaRonda: number;
   /** La posición en el orden de juego del jugador en turno. */
   turno: number;
-  ejercitosPorIncorporar: number;
+  ejercitosPorIncorporar: EjercitosPorIncorporar;
   /** Dónde quedó la fuente de azar, para que una partida restaurada siga la misma secuencia. */
   azar: EstadoDeAzar;
 }
 
+/** Los ejércitos que le quedan por poner al jugador en turno. */
+export interface EjercitosPorIncorporar {
+  /** Los que se pueden poner en cualquier país propio. */
+  generales: number;
+  /** Los extra de cada continente que ocupa entero, que solo se pueden poner en países de ese continente. */
+  porContinente: Partial<Record<NombreDeContinente, number>>;
+}
+
 export interface Ronda {
-  tipo: "inicial" | "ataque";
+  tipo: "incorporacion" | "ataque";
+  /** Las dos primeras rondas de la partida son las rondas iniciales, de incorporación. */
+  inicial: boolean;
   numero: number;
 }
 
@@ -55,7 +67,7 @@ export interface Partida {
   limitrofesDe(pais: NombreDePais): readonly NombreDePais[];
   ronda(): Ronda;
   jugadorEnTurno(): DatosDeJugador;
-  ejercitosPorIncorporar(): number;
+  ejercitosPorIncorporar(): EjercitosPorIncorporar;
   /** Aplica una acción y devuelve la partida que queda, o un error que explica qué regla la impide. */
   aplicar(accion: Accion): ResultadoDePartida;
 }
@@ -91,15 +103,15 @@ export function crearPartida(
   azar.mezclarPaises(PAISES.map((pais) => pais.nombre)).forEach((pais, i) => {
     paises[pais] = { ocupante: ordenDeJuego[i % ordenDeJuego.length]!.color, ejercitos: 1 };
   });
-  const ronda: Ronda = { tipo: "inicial", numero: 1 };
-  const estado: EstadoDePartida = {
+  const estado = empezarTurno({
     jugadores: ordenDeJuego,
     paises,
-    ronda,
+    ronda: { tipo: "incorporacion", inicial: true, numero: 1 },
+    abrioLaRonda: 0,
     turno: 0,
-    ejercitosPorIncorporar: ejercitosDeLaRonda(ronda),
+    ejercitosPorIncorporar: NINGUN_EJERCITO,
     azar: azar.estado(),
-  };
+  });
   return { ok: true, partida: partidaDesde(estado) };
 }
 
@@ -135,7 +147,7 @@ function partidaDesde(estado: EstadoDePartida): Partida {
       PARES_LIMITROFES.flatMap(([a, b]) => (a === pais ? [b] : b === pais ? [a] : [])),
     ronda: () => ({ ...estado.ronda }),
     jugadorEnTurno: () => ({ ...jugadorEnTurno(estado) }),
-    ejercitosPorIncorporar: () => estado.ejercitosPorIncorporar,
+    ejercitosPorIncorporar: () => structuredClone(estado.ejercitosPorIncorporar),
     aplicar: (accion) => {
       const resultado = accion.tipo === "incorporar" ? incorporar(estado, accion) : pasarTurno(estado);
       return resultado.ok ? { ok: true, partida: partidaDesde(resultado.estado) } : resultado;
@@ -153,11 +165,9 @@ function incorporar(estado: EstadoDePartida, { pais, cantidad }: { pais: NombreD
   if (!Number.isInteger(cantidad) || cantidad < 1) {
     return { ok: false, error: "Hay que poner un número entero de ejércitos, de 1 en adelante." };
   }
-  if (cantidad > estado.ejercitosPorIncorporar) {
-    return {
-      ok: false,
-      error: `${enTurno.nombre} tiene ${estado.ejercitosPorIncorporar} ejércitos por poner y quiso poner ${cantidad}.`,
-    };
+  const total = totalPorIncorporar(estado.ejercitosPorIncorporar);
+  if (cantidad > total) {
+    return { ok: false, error: `${enTurno.nombre} tiene ${total} ejércitos por poner y quiso poner ${cantidad}.` };
   }
   if (!Object.hasOwn(estado.paises, pais)) {
     return { ok: false, error: `${pais} no es un país del mapa.` };
@@ -169,40 +179,121 @@ function incorporar(estado: EstadoDePartida, { pais, cantidad }: { pais: NombreD
       error: `${enTurno.nombre} no puede poner ejércitos en ${pais}, porque lo ocupa ${nombreDe(estado, ocupante)}.`,
     };
   }
+  const { generales, porContinente } = estado.ejercitosPorIncorporar;
+  const continente = PAISES.find((enMapa) => enMapa.nombre === pais)!.continente;
+  const extra = porContinente[continente] ?? 0;
+  if (cantidad > generales + extra) {
+    const otros = CONTINENTES.map(({ nombre }) => nombre).filter(
+      (nombre) => nombre !== continente && porContinente[nombre],
+    );
+    return { ok: false, error: `${hastaCuantos(enTurno.nombre, generales + extra, pais)} ${dondeVanLosExtra(otros)}` };
+  }
+  // Los extra del continente se usan primero, porque no pueden ir a otro lado.
+  const deExtra = Math.min(cantidad, extra);
+  const extrasQueQuedan = { ...porContinente, [continente]: extra - deExtra };
+  if (extrasQueQuedan[continente] === 0) delete extrasQueQuedan[continente];
   return {
     ok: true,
     estado: {
       ...estado,
       paises: { ...estado.paises, [pais]: { ocupante, ejercitos: ejercitos + cantidad } },
-      ejercitosPorIncorporar: estado.ejercitosPorIncorporar - cantidad,
+      ejercitosPorIncorporar: {
+        generales: generales - (cantidad - deExtra),
+        porContinente: extrasQueQuedan,
+      },
     },
   };
 }
 
+function hastaCuantos(jugador: string, disponibles: number, pais: NombreDePais): string {
+  if (disponibles === 0) return `${jugador} no puede poner ejércitos en ${pais}.`;
+  return `${jugador} puede poner hasta ${disponibles === 1 ? "1 ejército" : `${disponibles} ejércitos`} en ${pais}.`;
+}
+
+function dondeVanLosExtra(continentes: readonly NombreDeContinente[]): string {
+  if (continentes.length === 1) {
+    return `Los extra de ${continentes[0]} solo se pueden poner en países de ${continentes[0]}.`;
+  }
+  const lista = continentes.map((continente) => `de ${continente}`);
+  return `Los extra ${lista.slice(0, -1).join(", ")} y ${lista.at(-1)} solo se pueden poner en países de esos continentes.`;
+}
+
 function pasarTurno(estado: EstadoDePartida): ResultadoDeAccion {
   const enTurno = jugadorEnTurno(estado);
-  const quedan = estado.ejercitosPorIncorporar;
+  const quedan = totalPorIncorporar(estado.ejercitosPorIncorporar);
   if (quedan > 0) {
     return {
       ok: false,
       error: `${enTurno.nombre} no puede pasar el turno: le ${quedan === 1 ? "queda 1 ejército" : `quedan ${quedan} ejércitos`} por poner.`,
     };
   }
-  if (estado.turno + 1 < estado.jugadores.length) {
-    return { ok: true, estado: { ...estado, turno: estado.turno + 1, ejercitosPorIncorporar: ejercitosDeLaRonda(estado.ronda) } };
-  }
+  const siguiente = siguienteEnLaRonda(estado);
+  if (siguiente !== undefined) return { ok: true, estado: empezarTurno({ ...estado, turno: siguiente }) };
   const ronda = siguienteRonda(estado.ronda);
-  return { ok: true, estado: { ...estado, ronda, turno: 0, ejercitosPorIncorporar: ejercitosDeLaRonda(ronda) } };
+  const abre = quienAbre(estado, ronda);
+  return { ok: true, estado: empezarTurno({ ...estado, ronda, abrioLaRonda: abre, turno: abre }) };
 }
 
-function siguienteRonda({ tipo, numero }: Ronda): Ronda {
-  if (tipo === "inicial") return numero === 1 ? { tipo: "inicial", numero: 2 } : { tipo: "ataque", numero: 1 };
-  // Hasta que lleguen las rondas de incorporación (ticket 05), a una ronda de ataque le sigue otra.
-  return { tipo: "ataque", numero: numero + 1 };
+/** Le da al jugador en turno los ejércitos que le tocan, calculados con los países que tiene ahora. */
+function empezarTurno(estado: EstadoDePartida): EstadoDePartida {
+  return { ...estado, ejercitosPorIncorporar: ejercitosDelTurno(estado) };
 }
 
-/** Los ejércitos que pone cada jugador en su turno de esa ronda. */
-function ejercitosDeLaRonda({ tipo, numero }: Ronda): number {
-  if (tipo === "ataque") return 0;
-  return numero === 1 ? 5 : 3;
+/**
+ * La posición del jugador que juega después del que está en turno, o nada si la ronda terminó.
+ * La ronda recorre el orden de juego desde el que la abrió, salteando a los destruidos.
+ */
+function siguienteEnLaRonda(estado: EstadoDePartida): number | undefined {
+  const cantidad = estado.jugadores.length;
+  let posicion = (estado.turno + 1) % cantidad;
+  while (posicion !== estado.abrioLaRonda) {
+    if (!estaDestruido(estado, posicion)) return posicion;
+    posicion = (posicion + 1) % cantidad;
+  }
+  return undefined;
+}
+
+/**
+ * La posición del jugador que abre una ronda que está por empezar. Una ronda de incorporación,
+ * salvo las iniciales, la abre el primer jugador vivo sentado después del que abrió la anterior,
+ * aunque ese ya esté destruido. Las demás las abre el mismo que abrió la anterior, o el siguiente vivo.
+ */
+function quienAbre(estado: EstadoDePartida, ronda: Ronda): number {
+  const rota = ronda.tipo === "incorporacion" && !ronda.inicial;
+  const cantidad = estado.jugadores.length;
+  let posicion = (estado.abrioLaRonda + (rota ? 1 : 0)) % cantidad;
+  while (estaDestruido(estado, posicion)) posicion = (posicion + 1) % cantidad;
+  return posicion;
+}
+
+/** Un jugador está destruido cuando no le queda ningún país. */
+function estaDestruido(estado: EstadoDePartida, posicion: number): boolean {
+  const { color } = estado.jugadores[posicion]!;
+  return !PAISES.some((pais) => estado.paises[pais.nombre].ocupante === color);
+}
+
+function siguienteRonda({ tipo, inicial, numero }: Ronda): Ronda {
+  if (inicial && numero === 1) return { tipo: "incorporacion", inicial: true, numero: 2 };
+  if (tipo === "incorporacion") return { tipo: "ataque", inicial: false, numero: inicial ? 1 : numero + 1 };
+  return { tipo: "incorporacion", inicial: false, numero };
+}
+
+const NINGUN_EJERCITO: EjercitosPorIncorporar = { generales: 0, porContinente: {} };
+
+function ejercitosDelTurno(estado: EstadoDePartida): EjercitosPorIncorporar {
+  const { tipo, inicial, numero } = estado.ronda;
+  if (tipo === "ataque") return NINGUN_EJERCITO;
+  if (inicial) return { generales: numero === 1 ? 5 : 3, porContinente: {} };
+  const { color } = jugadorEnTurno(estado);
+  const esSuyo = (pais: NombreDePais) => estado.paises[pais].ocupante === color;
+  const cantidadDePaises = PAISES.filter((pais) => esSuyo(pais.nombre)).length;
+  const porContinente: EjercitosPorIncorporar["porContinente"] = {};
+  for (const continente of CONTINENTES) {
+    if (continente.paises.every(esSuyo)) porContinente[continente.nombre] = continente.ejercitosExtra;
+  }
+  return { generales: Math.max(3, Math.floor(cantidadDePaises / 2)), porContinente };
+}
+
+function totalPorIncorporar({ generales, porContinente }: EjercitosPorIncorporar): number {
+  return Object.values(porContinente).reduce((total, extra) => total + extra, generales);
 }
