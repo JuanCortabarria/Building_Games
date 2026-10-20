@@ -658,7 +658,7 @@ El agente actualiza esta tabla al terminar cada módulo.
 
 | Módulo | Estado | Fecha | Qué se hizo | Aprendizajes y dudas |
 |---|---|---|---|---|
-| 0. Preparación | Pendiente | | | |
+| 0. Preparación | Terminado | 2026-10-20 | Plugin `mattpocock-skills` 1.3.1 instalado. `/setup-matt-pocock-skills` con tracker en markdown local (`.scratch/`), etiquetas por defecto y docs de dominio single-context. Se escribieron `docs/agents/{issue-tracker,triage-labels,domain}.md` y la sección `## Agent skills` en `CLAUDE.md` | La skill explora antes de preguntar y saltea lo que la exploración ya resolvió (docs de dominio, por no haber monorepo). Con remote en GitHub, su default habría sido GitHub Issues: elegimos local para ver los tickets como archivos. `GLOSSARY.md` y `docs/adr/` se crean recién en el Módulo 1 |
 | 1. Alinear antes de construir | Pendiente | | | |
 | 2. Prototipar una pregunta | Pendiente | | | |
 | 3. De la conversación al plan | Pendiente | | | |
