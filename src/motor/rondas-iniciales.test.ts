@@ -47,6 +47,15 @@ describe("rondas iniciales", () => {
     expect(resultado).toEqual({ ok: false, error: "Ana no puede poner ejércitos en Brasil, porque lo ocupa Beto." });
   });
 
+  it("no se pueden poner ejércitos en un país que no está en el mapa", () => {
+    const partida = partidaDeTres();
+
+    // La acción puede venir de afuera del motor (la pantalla, un estado guardado), así que el tipo no alcanza.
+    const resultado = partida.aplicar({ tipo: "incorporar", pais: "Atlántida" as NombreDePais, cantidad: 1 });
+
+    expect(resultado).toEqual({ ok: false, error: "Atlántida no es un país del mapa." });
+  });
+
   it("un jugador no puede poner más ejércitos de los que le quedan, ni menos de 1", () => {
     const partida = partidaDeTres();
 

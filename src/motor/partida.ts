@@ -89,18 +89,23 @@ export function crearPartida(
   azar.mezclarPaises(PAISES.map((pais) => pais.nombre)).forEach((pais, i) => {
     paises[pais] = { ocupante: ordenDeJuego[i % ordenDeJuego.length]!.color, ejercitos: 1 };
   });
+  const ronda: Ronda = { tipo: "inicial", numero: 1 };
   const estado: EstadoDePartida = {
     jugadores: ordenDeJuego,
     paises,
-    ronda: { tipo: "inicial", numero: 1 },
+    ronda,
     turno: 0,
-    ejercitosPorIncorporar: 5,
+    ejercitosPorIncorporar: ejercitosDeLaRonda(ronda),
   };
   return { ok: true, partida: partidaDesde(estado) };
 }
 
 export function restaurarPartida(estado: EstadoDePartida, _azar: FuenteDeAzar): ResultadoDePartida {
   return { ok: true, partida: partidaDesde(structuredClone(estado)) };
+}
+
+function jugadorEnTurno(estado: EstadoDePartida): DatosDeJugador {
+  return estado.jugadores[estado.turno]!;
 }
 
 function nombreDe(estado: EstadoDePartida, color: Color): string {
@@ -110,7 +115,7 @@ function nombreDe(estado: EstadoDePartida, color: Color): string {
 function partidaDesde(estado: EstadoDePartida): Partida {
   return {
     estado: () => structuredClone(estado),
-    ordenDeJuego: () => estado.jugadores,
+    ordenDeJuego: () => estado.jugadores.map((jugador) => ({ ...jugador })),
     paises: () => PAISES.map((pais) => ({ ...pais, ...estado.paises[pais.nombre] })),
     continentes: () =>
       CONTINENTES.map((continente) => ({
@@ -120,8 +125,8 @@ function partidaDesde(estado: EstadoDePartida): Partida {
       })),
     limitrofesDe: (pais) =>
       PARES_LIMITROFES.flatMap(([a, b]) => (a === pais ? [b] : b === pais ? [a] : [])),
-    ronda: () => estado.ronda,
-    jugadorEnTurno: () => estado.jugadores[estado.turno]!,
+    ronda: () => ({ ...estado.ronda }),
+    jugadorEnTurno: () => ({ ...jugadorEnTurno(estado) }),
     ejercitosPorIncorporar: () => estado.ejercitosPorIncorporar,
     aplicar: (accion) => {
       const resultado = accion.tipo === "incorporar" ? incorporar(estado, accion) : pasarTurno(estado);
@@ -133,7 +138,7 @@ function partidaDesde(estado: EstadoDePartida): Partida {
 type ResultadoDeAccion = { ok: true; estado: EstadoDePartida } | { ok: false; error: string };
 
 function incorporar(estado: EstadoDePartida, { pais, cantidad }: { pais: NombreDePais; cantidad: number }): ResultadoDeAccion {
-  const enTurno = estado.jugadores[estado.turno]!;
+  const enTurno = jugadorEnTurno(estado);
   if (estado.ronda.tipo === "ataque") {
     return { ok: false, error: "En la ronda de ataque no se ponen ejércitos nuevos." };
   }
@@ -145,6 +150,9 @@ function incorporar(estado: EstadoDePartida, { pais, cantidad }: { pais: NombreD
       ok: false,
       error: `${enTurno.nombre} tiene ${estado.ejercitosPorIncorporar} ejércitos por poner y quiso poner ${cantidad}.`,
     };
+  }
+  if (!Object.hasOwn(estado.paises, pais)) {
+    return { ok: false, error: `${pais} no es un país del mapa.` };
   }
   const { ocupante, ejercitos } = estado.paises[pais];
   if (ocupante !== enTurno.color) {
@@ -164,7 +172,7 @@ function incorporar(estado: EstadoDePartida, { pais, cantidad }: { pais: NombreD
 }
 
 function pasarTurno(estado: EstadoDePartida): ResultadoDeAccion {
-  const enTurno = estado.jugadores[estado.turno]!;
+  const enTurno = jugadorEnTurno(estado);
   const quedan = estado.ejercitosPorIncorporar;
   if (quedan > 0) {
     return {

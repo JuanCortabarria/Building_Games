@@ -53,6 +53,20 @@ describe("el estado de una partida", () => {
     expect(partida.paises().find((pais) => pais.nombre === "Argentina")?.ejercitos).toBe(1);
   });
 
+  it("cambiar lo que devuelven las consultas no cambia la partida", () => {
+    const partida = partidaDeDos();
+
+    partida.ronda().numero = 9;
+    partida.jugadorEnTurno().nombre = "Zoe";
+    partida.ordenDeJuego()[1]!.nombre = "Zoe";
+
+    expect(partida.ronda()).toEqual({ tipo: "inicial", numero: 1 });
+    expect(partida.ordenDeJuego()).toEqual([
+      { nombre: "Ana", color: "azul" },
+      { nombre: "Beto", color: "rojo" },
+    ]);
+  });
+
   it("cambiar el estado guardado después de restaurarlo no cambia la partida restaurada", () => {
     const estadoGuardado = partidaDeDos().estado();
     const restaurada = partidaDe(restaurarPartida(estadoGuardado, fuenteFija()));
