@@ -361,8 +361,8 @@ function atacar(
   let quedanEnDestino = { ...destino, ejercitos: destino.ejercitos - perdidosDelDefensor };
   const conquista = quedanEnDestino.ejercitos === 0;
   if (conquista) {
-    // Un país nunca queda vacío: lo ocupa el atacante con 1 ejército, el mínimo que tiene que mover, y
-    // después elige si mueve más. Al origen le quedan al menos 2, porque el defensor perdió todos los pares.
+    // Un país nunca queda vacío: lo ocupa el atacante con 1 ejército, el mínimo que tiene que mover.
+    // Antes de mover, al origen le quedan al menos 2, porque el defensor perdió todos los pares.
     quedanEnOrigen = { ...quedanEnOrigen, ejercitos: quedanEnOrigen.ejercitos - 1 };
     quedanEnDestino = { ocupante: enTurno.color, ejercitos: 1 };
   }
@@ -371,12 +371,15 @@ function atacar(
   // Gana en el acto: no se juega más, ni siquiera el movimiento al país conquistado.
   const suyos = PAISES.filter((pais) => paises[pais.nombre].ocupante === enTurno.color).length;
   const gana = conquista && suyos >= PAISES_PARA_GANAR;
+  // Si en el origen quedó 1 solo ejército, el que entró al conquistar es el único que se podía mover:
+  // no hay nada que elegir y el turno sigue.
+  const hayQueElegir = conquista && !gana && quedanEnOrigen.ejercitos > 1;
   return {
     ok: true,
     estado: {
       ...estado,
       paises,
-      conquistaPendiente: conquista && !gana ? { desde, hacia } : null,
+      conquistaPendiente: hayQueElegir ? { desde, hacia } : null,
       ganador: gana ? enTurno.color : null,
       azar: azar.estado(),
       ultimaTirada: {

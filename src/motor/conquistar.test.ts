@@ -94,17 +94,13 @@ describe("cuántos ejércitos se mueven al país conquistado", () => {
     expect(pais(despues, "Argentina").ejercitos).toBe(1);
   });
 
-  it("con 2 ejércitos en el origen solo se puede mover 1", () => {
+  it("con 2 ejércitos en el origen no hay nada que elegir: el que entró al conquistar se queda y el turno sigue", () => {
     const partida = anaConquistaChile(2);
 
-    expect(partida.conquistaPendiente()?.maximo).toBe(1);
-    expect(partida.aplicar({ tipo: "moverAlConquistado", cantidad: 2 })).toEqual({
-      ok: false,
-      error: "Ana solo puede mover 1 ejército a Chile, porque en Argentina tiene que quedar al menos 1.",
-    });
-    const despues = partidaDe(partida.aplicar({ tipo: "moverAlConquistado", cantidad: 1 }));
-    expect(pais(despues, "Chile")).toEqual({ ocupante: "azul", ejercitos: 1 });
-    expect(pais(despues, "Argentina")).toEqual({ ocupante: "azul", ejercitos: 1 });
+    expect(partida.conquistaPendiente()).toBeNull();
+    expect(pais(partida, "Chile")).toEqual({ ocupante: "azul", ejercitos: 1 });
+    expect(pais(partida, "Argentina")).toEqual({ ocupante: "azul", ejercitos: 1 });
+    expect(partida.aplicar({ tipo: "pasarTurno" }).ok).toBe(true);
   });
 
   it("sin un país recién conquistado no hay a dónde mover", () => {
