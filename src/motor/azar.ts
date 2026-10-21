@@ -3,6 +3,13 @@ import type { NombreDePais } from "./mapa";
 export interface FuenteDeAzar {
   sortearOrden<T>(jugadores: readonly T[]): T[];
   mezclarPaises(paises: readonly NombreDePais[]): NombreDePais[];
+  /** Tira la cantidad de dados pedida y devuelve sus valores, del 1 al 6, en el orden en que salieron. */
+  tirarDados(cantidad: number): number[];
+  /**
+   * La misma fuente, retomada en el punto de su secuencia que dice `estado`. No cambia a esta fuente,
+   * así que reanudar dos veces desde el mismo estado da los mismos resultados.
+   */
+  reanudar(estado: EstadoDeAzar): FuenteDeAzar;
   /** En qué punto de su secuencia está la fuente, como dato simple para guardarlo con la partida. */
   estado(): EstadoDeAzar;
 }
@@ -48,7 +55,13 @@ export function reanudarFuente({ semilla, avance }: EstadoDeAzar): FuenteDeAzar 
     }
     return mezclada;
   };
-  return { sortearOrden: mezclar, mezclarPaises: mezclar, estado: () => ({ semilla, avance: sacados }) };
+  return {
+    sortearOrden: mezclar,
+    mezclarPaises: mezclar,
+    tirarDados: (cantidad) => Array.from({ length: cantidad }, () => Math.floor(siguiente() * 6) + 1),
+    reanudar: reanudarFuente,
+    estado: () => ({ semilla, avance: sacados }),
+  };
 }
 
 /**
@@ -58,13 +71,16 @@ export function reanudarFuente({ semilla, avance }: EstadoDeAzar): FuenteDeAzar 
  *   `[2, 0, 1]` deja primero a la tercera anotada, después a la primera y después al segundo.
  * - `primerosPaises`: los países que la mezcla deja primeros, en ese orden.
  *   El resto queda después, en el orden en que vienen.
+ * - `dados`: los valores que van saliendo, en orden, tirada tras tirada. En un ataque tira primero
+ *   el atacante y después el defensor: `[6, 4, 1, 5, 4]` es el atacante 6, 4, 1 y el defensor 5, 4.
  *
- * Lo que no se fija queda sin mezclar.
+ * Lo que no se fija queda sin mezclar. Su `avance` es cuántos dados de la lista ya salieron.
  */
-export function fuenteFija({
-  ordenDeJuego,
-  primerosPaises = [],
-}: { ordenDeJuego?: number[]; primerosPaises?: NombreDePais[] } = {}): FuenteDeAzar {
+export function fuenteFija(
+  fijados: { ordenDeJuego?: number[]; primerosPaises?: NombreDePais[]; dados?: number[] } = {},
+  avance = 0,
+): FuenteDeAzar {
+  const { ordenDeJuego, primerosPaises = [], dados = [] } = fijados;
   return {
     sortearOrden(jugadores) {
       if (!ordenDeJuego) return [...jugadores];
@@ -82,7 +98,18 @@ export function fuenteFija({
     mezclarPaises(paises) {
       return [...primerosPaises, ...paises.filter((pais) => !primerosPaises.includes(pais))];
     },
-    // No sigue una secuencia: su estado es siempre el del principio.
-    estado: () => ({ semilla: 0, avance: 0 }),
+    tirarDados(cantidad) {
+      if (avance + cantidad > dados.length) {
+        throw new Error(
+          `Se pidieron ${cantidad} dados y quedan ${dados.length - avance} de los ${dados.length} fijados.`,
+        );
+      }
+      const tirados = dados.slice(avance, avance + cantidad);
+      avance += cantidad;
+      return tirados;
+    },
+    reanudar: (estado) => fuenteFija(fijados, estado.avance),
+    // No tiene semilla: su secuencia es la lista de dados.
+    estado: () => ({ semilla: 0, avance }),
   };
 }

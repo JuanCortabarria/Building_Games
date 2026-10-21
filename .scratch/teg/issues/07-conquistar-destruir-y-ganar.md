@@ -14,3 +14,12 @@
 - [ ] Un jugador que llega a 30 países gana en el acto, aunque esté en medio de su turno de ataque.
 - [ ] Con 2 jugadores, destruir al rival da la victoria (el ganador ocupa los 50 países).
 - [ ] Con un ganador, el motor rechaza cualquier acción y la pantalla muestra quién ganó.
+
+## Comments
+
+**2026-10-20, lo que dejó el ticket 06:**
+
+- **La conquista provisoria.** Cuando un ataque deja al país atacado en 0 ejércitos, `atacar` (en `src/motor/partida.ts`) lo pasa al atacante y mueve 1 ejército desde el origen, sin preguntar. Está marcado con un comentario. Este ticket lo reemplaza por la elección de 1 a 3 ejércitos y por el bloqueo de cualquier otra acción hasta mover. El test "pasa a ser del atacante, que mueve a él 1 ejército desde el país de origen", en `src/motor/atacar.test.ts`, describe el comportamiento provisorio y hay que reescribirlo.
+- **Destruir ya funciona a medias.** Un jugador sin países ya está destruido para la rotación (`estaDestruido`), así que si un ataque le quita el último país pierde sus turnos. Falta lo que pida este ticket sobre eliminarlo de la partida y mostrarlo.
+- **No hay ganador.** El motor no controla los 30 países ni que quede un solo jugador: la partida sigue aunque alguien ocupe los 50.
+- **La última tirada** guarda el color del defensor de antes del ataque, así que después de una conquista dice quién defendía. La pantalla no dice que hubo conquista: solo se ve que el país cambió de color.

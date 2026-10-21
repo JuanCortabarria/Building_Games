@@ -24,6 +24,23 @@ export interface EstadoDePartida {
   ejercitosPorIncorporar: EjercitosPorIncorporar;
   /** Dónde quedó la fuente de azar, para que una partida restaurada siga la misma secuencia. */
   azar: EstadoDeAzar;
+  /** La última tirada del turno en curso, o nada si en este turno todavía no se atacó. */
+  ultimaTirada: Tirada | null;
+}
+
+/** El resultado de una tirada de ataque. */
+export interface Tirada {
+  atacante: LadoDeLaTirada;
+  defensor: LadoDeLaTirada;
+}
+
+export interface LadoDeLaTirada {
+  pais: NombreDePais;
+  color: Color;
+  /** Los dados que tiró, de mayor a menor. */
+  dados: number[];
+  /** Los ejércitos que perdió. */
+  perdidos: number;
 }
 
 /** Los ejércitos que le quedan por poner al jugador en turno. */
@@ -53,7 +70,10 @@ export interface DatosDeContinente {
   ejercitosExtra: number;
 }
 
-export type Accion = { tipo: "incorporar"; pais: NombreDePais; cantidad: number } | { tipo: "pasarTurno" };
+export type Accion =
+  | { tipo: "incorporar"; pais: NombreDePais; cantidad: number }
+  | { tipo: "atacar"; desde: NombreDePais; hacia: NombreDePais }
+  | { tipo: "pasarTurno" };
 
 export type ResultadoDePartida = { ok: true; partida: Partida } | { ok: false; error: string };
 
@@ -67,6 +87,7 @@ export interface Partida {
   ronda(): Ronda;
   jugadorEnTurno(): DatosDeJugador;
   ejercitosPorIncorporar(): EjercitosPorIncorporar;
+  ultimaTirada(): Tirada | null;
   /** Aplica una acción y devuelve la partida que queda, o un error que explica qué regla la impide. */
   aplicar(accion: Accion): ResultadoDePartida;
 }
@@ -110,8 +131,9 @@ export function crearPartida(
     turno: 0,
     ejercitosPorIncorporar: NINGUN_EJERCITO,
     azar: azar.estado(),
+    ultimaTirada: null,
   });
-  return { ok: true, partida: partidaDesde(estado) };
+  return { ok: true, partida: partidaDesde(estado, azar) };
 }
 
 /**
@@ -120,7 +142,7 @@ export function crearPartida(
  * reanudada desde `estado.azar` (ver `reanudarFuente`).
  */
 export function restaurarPartida(estado: EstadoDePartida, azar: FuenteDeAzar): ResultadoDePartida {
-  return { ok: true, partida: partidaDesde({ ...structuredClone(estado), azar: azar.estado() }) };
+  return { ok: true, partida: partidaDesde({ ...structuredClone(estado), azar: azar.estado() }, azar) };
 }
 
 function jugadorEnTurno(estado: EstadoDePartida): DatosDeJugador {
@@ -131,7 +153,11 @@ function nombreDe(estado: EstadoDePartida, color: Color): string {
   return estado.jugadores.find((jugador) => jugador.color === color)?.nombre ?? color;
 }
 
-function partidaDesde(estado: EstadoDePartida): Partida {
+/**
+ * La partida no usa la fuente de azar tal como la recibe, porque avanzarla cambiaría también a la
+ * partida de antes. Cada acción que tira dados la reanuda desde `estado.azar` y guarda dónde quedó.
+ */
+function partidaDesde(estado: EstadoDePartida, azar: FuenteDeAzar): Partida {
   return {
     estado: () => structuredClone(estado),
     ordenDeJuego: () => estado.jugadores.map((jugador) => ({ ...jugador })),
@@ -142,16 +168,25 @@ function partidaDesde(estado: EstadoDePartida): Partida {
         cantidadDePaises: continente.paises.length,
         ejercitosExtra: continente.ejercitosExtra,
       })),
-    limitrofesDe: (pais) =>
-      PARES_LIMITROFES.flatMap(([a, b]) => (a === pais ? [b] : b === pais ? [a] : [])),
+    limitrofesDe,
     ronda: () => ({ ...estado.ronda }),
     jugadorEnTurno: () => ({ ...jugadorEnTurno(estado) }),
     ejercitosPorIncorporar: () => structuredClone(estado.ejercitosPorIncorporar),
+    ultimaTirada: () => structuredClone(estado.ultimaTirada),
     aplicar: (accion) => {
-      const resultado = accion.tipo === "incorporar" ? incorporar(estado, accion) : pasarTurno(estado);
-      return resultado.ok ? { ok: true, partida: partidaDesde(resultado.estado) } : resultado;
+      const resultado =
+        accion.tipo === "incorporar"
+          ? incorporar(estado, accion)
+          : accion.tipo === "atacar"
+            ? atacar(estado, accion, azar.reanudar(estado.azar))
+            : pasarTurno(estado);
+      return resultado.ok ? { ok: true, partida: partidaDesde(resultado.estado, azar) } : resultado;
     },
   };
+}
+
+function limitrofesDe(pais: NombreDePais): NombreDePais[] {
+  return PARES_LIMITROFES.flatMap(([a, b]) => (a === pais ? [b] : b === pais ? [a] : []));
 }
 
 type ResultadoDeAccion = { ok: true; estado: EstadoDePartida } | { ok: false; error: string };
@@ -217,6 +252,73 @@ function dondeVanLosExtra(continentes: readonly NombreDeContinente[]): string {
   return `Los extra ${lista.slice(0, -1).join(", ")} y ${lista.at(-1)} solo se pueden poner en países de esos continentes.`;
 }
 
+/** Una sola tirada de dados desde un país propio a uno limítrofe de otro jugador. */
+function atacar(
+  estado: EstadoDePartida,
+  { desde, hacia }: { desde: NombreDePais; hacia: NombreDePais },
+  azar: FuenteDeAzar,
+): ResultadoDeAccion {
+  const enTurno = jugadorEnTurno(estado);
+  if (estado.ronda.tipo !== "ataque") {
+    return { ok: false, error: "Solo se ataca en la ronda de ataque, y esta es una ronda de incorporación." };
+  }
+  const fueraDelMapa = [desde, hacia].find((pais) => !Object.hasOwn(estado.paises, pais));
+  if (fueraDelMapa) return { ok: false, error: `${fueraDelMapa} no es un país del mapa.` };
+  const origen = estado.paises[desde];
+  const destino = estado.paises[hacia];
+  if (origen.ocupante !== enTurno.color) {
+    return {
+      ok: false,
+      error: `${enTurno.nombre} solo puede atacar desde un país suyo, y ${desde} lo ocupa ${nombreDe(estado, origen.ocupante)}.`,
+    };
+  }
+  if (destino.ocupante === enTurno.color) {
+    return { ok: false, error: `${enTurno.nombre} no puede atacar a ${hacia}, porque es un país suyo.` };
+  }
+  if (!limitrofesDe(desde).includes(hacia)) {
+    return { ok: false, error: `Desde ${desde} no se puede atacar a ${hacia}, porque no son limítrofes.` };
+  }
+  if (origen.ejercitos < 2) {
+    return {
+      ok: false,
+      error: `Para atacar desde ${desde} hacen falta al menos 2 ejércitos, porque siempre tiene que quedar uno, y tiene ${origen.ejercitos}.`,
+    };
+  }
+  const dadosDelAtacante = deMayorAMenor(azar.tirarDados(Math.min(3, origen.ejercitos - 1)));
+  const dadosDelDefensor = deMayorAMenor(azar.tirarDados(Math.min(3, destino.ejercitos)));
+  let perdidosDelAtacante = 0;
+  let perdidosDelDefensor = 0;
+  // Se comparan de a pares, tantos como dados tiró el lado que tiró menos. El empate lo gana el defensor.
+  for (let i = 0; i < Math.min(dadosDelAtacante.length, dadosDelDefensor.length); i++) {
+    if (dadosDelAtacante[i]! > dadosDelDefensor[i]!) perdidosDelDefensor++;
+    else perdidosDelAtacante++;
+  }
+  let quedanEnOrigen = { ...origen, ejercitos: origen.ejercitos - perdidosDelAtacante };
+  let quedanEnDestino = { ...destino, ejercitos: destino.ejercitos - perdidosDelDefensor };
+  if (quedanEnDestino.ejercitos === 0) {
+    // Un país nunca queda vacío: lo conquista el atacante, que mueve 1 ejército. Elegir cuántos mover
+    // es del ticket 07. Al origen le quedan al menos 2, porque el defensor perdió todos los pares.
+    quedanEnOrigen = { ...quedanEnOrigen, ejercitos: quedanEnOrigen.ejercitos - 1 };
+    quedanEnDestino = { ocupante: enTurno.color, ejercitos: 1 };
+  }
+  return {
+    ok: true,
+    estado: {
+      ...estado,
+      paises: { ...estado.paises, [desde]: quedanEnOrigen, [hacia]: quedanEnDestino },
+      azar: azar.estado(),
+      ultimaTirada: {
+        atacante: { pais: desde, color: origen.ocupante, dados: dadosDelAtacante, perdidos: perdidosDelAtacante },
+        defensor: { pais: hacia, color: destino.ocupante, dados: dadosDelDefensor, perdidos: perdidosDelDefensor },
+      },
+    },
+  };
+}
+
+function deMayorAMenor(dados: readonly number[]): number[] {
+  return [...dados].sort((a, b) => b - a);
+}
+
 function pasarTurno(estado: EstadoDePartida): ResultadoDeAccion {
   const enTurno = jugadorEnTurno(estado);
   const quedan = totalPorIncorporar(estado.ejercitosPorIncorporar);
@@ -233,9 +335,12 @@ function pasarTurno(estado: EstadoDePartida): ResultadoDeAccion {
   return { ok: true, estado: empezarTurno({ ...estado, ronda, abrioLaRonda: abre, turno: abre }) };
 }
 
-/** Le da al jugador en turno los ejércitos que le tocan, calculados con los países que tiene ahora. */
+/**
+ * Le da al jugador en turno los ejércitos que le tocan, calculados con los países que tiene ahora.
+ * La tirada del turno anterior deja de estar a la vista.
+ */
 function empezarTurno(estado: EstadoDePartida): EstadoDePartida {
-  return { ...estado, ejercitosPorIncorporar: ejercitosDelTurno(estado) };
+  return { ...estado, ejercitosPorIncorporar: ejercitosDelTurno(estado), ultimaTirada: null };
 }
 
 /**

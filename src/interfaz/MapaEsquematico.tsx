@@ -28,14 +28,21 @@ type Limite = readonly [PaisEnJuego, PaisEnJuego];
 export function MapaEsquematico({
   partida,
   nombreDe,
+  seleccionado = null,
   alElegirPais,
 }: {
   partida: Partida;
   nombreDe: (color: Color) => string;
+  /** El país elegido para atacar desde él; se marcan también sus limítrofes de otros jugadores. */
+  seleccionado?: NombreDePais | null;
   alElegirPais: (pais: NombreDePais) => void;
 }) {
   const paises = partida.paises();
   const porNombre = new Map(paises.map((pais) => [pais.nombre, pais]));
+  const ocupanteDelSeleccionado = seleccionado && porNombre.get(seleccionado)!.ocupante;
+  const atacables = seleccionado
+    ? partida.limitrofesDe(seleccionado).filter((pais) => porNombre.get(pais)!.ocupante !== ocupanteDelSeleccionado)
+    : [];
   // Cada par limítrofe una sola vez: se anota desde el país cuyo nombre se ordena primero.
   const limites: Limite[] = paises.flatMap((pais) =>
     partida
@@ -70,7 +77,13 @@ export function MapaEsquematico({
         ))}
       </g>
       {paises.map((pais) => (
-        <RecuadroDePais key={pais.nombre} pais={pais} nombreDe={nombreDe} alElegir={() => alElegirPais(pais.nombre)} />
+        <RecuadroDePais
+          key={pais.nombre}
+          pais={pais}
+          marca={pais.nombre === seleccionado ? "seleccionado" : atacables.includes(pais.nombre) ? "atacable" : null}
+          nombreDe={nombreDe}
+          alElegir={() => alElegirPais(pais.nombre)}
+        />
       ))}
     </svg>
   );
@@ -140,16 +153,19 @@ function LineaLimitrofe({ a, b }: { a: PaisEnJuego; b: PaisEnJuego }) {
 
 function RecuadroDePais({
   pais,
+  marca,
   nombreDe,
   alElegir,
 }: {
   pais: PaisEnJuego;
+  marca: "seleccionado" | "atacable" | null;
   nombreDe: (color: Color) => string;
   alElegir: () => void;
 }) {
   const { x, y } = POSICION_DEL_PAIS[pais.nombre];
   const estilo = ESTILO_DE_COLOR[pais.ocupante];
-  const descripcion = `${pais.nombre}: ${nombreDe(pais.ocupante)} (${pais.ocupante}), ${pais.ejercitos} ejército(s)`;
+  const detalle = marca === "seleccionado" ? ", elegido para atacar" : marca === "atacable" ? ", se puede atacar" : "";
+  const descripcion = `${pais.nombre}: ${nombreDe(pais.ocupante)} (${pais.ocupante}), ${pais.ejercitos} ejército(s)${detalle}`;
   const alApretarTecla = (evento: KeyboardEvent) => {
     if (evento.key === "Enter" || evento.key === " ") {
       evento.preventDefault();
@@ -158,7 +174,7 @@ function RecuadroDePais({
   };
   return (
     <g
-      className="pais-del-mapa"
+      className={marca ? `pais-del-mapa ${marca}` : "pais-del-mapa"}
       transform={`translate(${x} ${y})`}
       role="button"
       tabIndex={0}
