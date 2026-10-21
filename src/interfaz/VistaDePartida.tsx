@@ -3,6 +3,7 @@ import type { NombreDePais } from "../motor/mapa";
 import type { Accion, Color, LadoDeLaTirada, Partida, Ronda, Tirada } from "../motor/partida";
 import { ESTILO_DE_COLOR } from "./colores";
 import { MapaEsquematico } from "./MapaEsquematico";
+import { Tarjetas } from "./Tarjetas";
 
 const NOMBRE_DEL_TIPO: Record<Ronda["tipo"], string> = {
   incorporacion: "incorporación",
@@ -100,7 +101,7 @@ export function VistaDePartida({ partida, alCambiar }: { partida: Partida; alCam
     setError(null);
   };
 
-  const plural = (n: number | undefined) => `${n} ejército${n === 1 ? "" : "s"}`;
+  const plural = (n: number | undefined, cosa = "ejército") => `${n} ${cosa}${n === 1 ? "" : "s"}`;
   const indicacionDeReagrupe =
     origen === null
       ? reagrupo
@@ -154,6 +155,8 @@ export function VistaDePartida({ partida, alCambiar }: { partida: Partida; alCam
           </ul>
         )}
       </section>
+      {/* Se vuelve a armar en cada turno, para que no queden tarjetas elegidas del turno anterior. */}
+      <Tarjetas key={`${ronda.tipo} ${ronda.numero} ${enTurno.color}`} partida={partida} alAplicar={aplicar} />
       <section>
         <h2>Orden de juego</h2>
         <ol className="orden">
@@ -163,7 +166,11 @@ export function VistaDePartida({ partida, alCambiar }: { partida: Partida; alCam
               <span className="nombre-del-jugador">
                 {jugador.nombre} ({jugador.color})
               </span>
-              {estaDestruido(jugador.color) && <span>destruido</span>}
+              {estaDestruido(jugador.color) ? (
+                <span>destruido</span>
+              ) : (
+                <span className="cantidad-de-tarjetas">{plural(partida.tarjetasDe(jugador.color).length, "tarjeta")}</span>
+              )}
             </li>
           ))}
         </ol>

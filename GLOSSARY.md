@@ -58,10 +58,24 @@ Cada una de las dos rondas de incorporación con que empieza una partida, de 5 y
 La parte de una ronda que le corresponde a un jugador.
 _Avoid_: Jugada, mano
 
+## Tarjetas
+
+**Tarjeta de país**:
+Cada una de las 50 tarjetas del juego, una por país, con un símbolo: galeón, cañón, globo o comodín. Un jugador recibe una al terminar su turno de ataque si conquistó al menos un país en ese turno (al menos dos después de su tercer canje); si ocupa el país de la tarjeta, se ponen 2 ejércitos ahí.
+_Avoid_: Carta, naipe
+
+**Mazo**:
+Las tarjetas de país que todavía no recibió nadie, mezcladas y boca abajo. Las canjeadas van al **descarte**, que se mezcla y pasa a ser el mazo cuando el mazo se acaba.
+_Avoid_: Pila, baraja
+
+**Canje**:
+Entregar 3 tarjetas de país del mismo símbolo o de los tres símbolos distintos (el comodín vale por cualquiera) en el turno de una ronda de incorporación que no sea inicial, a cambio de ejércitos: 4 el primero de cada jugador, 7 el segundo, 10 el tercero y después 5 más cada vez.
+_Avoid_: Cambio, intercambio
+
 ## Ganar y perder
 
 **Destruir**:
-Quitarle a un jugador su último país. El jugador destruido queda eliminado de la partida.
+Quitarle a un jugador su último país. El jugador destruido queda eliminado de la partida, y quien lo destruyó se queda con sus tarjetas de país.
 _Avoid_: Matar, eliminar (como acción de otro jugador)
 
 **Objetivo común**:
