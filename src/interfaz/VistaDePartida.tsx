@@ -11,8 +11,12 @@ const NOMBRE_DEL_TIPO: Record<Ronda["tipo"], string> = {
 
 export function VistaDePartida({ partida, alCambiar }: { partida: Partida; alCambiar: (partida: Partida) => void }) {
   const [error, setError] = useState<string | null>(null);
-  // En la ronda de ataque, el país propio elegido para atacar desde él.
+  // En la ronda de ataque, si se está atacando o reagrupando, y el país propio elegido como origen.
+  const [modo, setModo] = useState<"atacar" | "reagrupar">("atacar");
   const [origen, setOrigen] = useState<NombreDePais | null>(null);
+  // Al reagrupar, el país elegido como destino y cuántos ejércitos se mueven.
+  const [destino, setDestino] = useState<NombreDePais | null>(null);
+  const [cantidad, setCantidad] = useState(1);
   const jugadores = partida.ordenDeJuego();
   const nombreDe = (color: Color) => jugadores.find((jugador) => jugador.color === color)?.nombre ?? color;
   const enTurno = partida.jugadorEnTurno();
@@ -23,12 +27,25 @@ export function VistaDePartida({ partida, alCambiar }: { partida: Partida; alCam
   const porIncorporar = extras.reduce((total, [, extra]) => total + extra, generales);
   const ejercitosDeOrigen = paises.find((pais) => pais.nombre === origen)?.ejercitos;
   const tirada = partida.ultimaTirada();
+  // Después de reagrupar ya no se ataca: el turno sigue en modo reagrupar.
+  const reagrupo = partida.reagrupoEnEsteTurno();
+  const modoEnJuego = reagrupo ? "reagrupar" : modo;
+
+  const soltarPaises = () => {
+    setOrigen(null);
+    setDestino(null);
+    setCantidad(1);
+  };
 
   const aplicar = (accion: Accion) => {
     const resultado = partida.aplicar(accion);
     if (resultado.ok) {
       setError(null);
-      if (accion.tipo === "pasarTurno") setOrigen(null);
+      if (accion.tipo === "pasarTurno") {
+        setModo("atacar");
+        soltarPaises();
+      }
+      if (accion.tipo === "reagrupar") soltarPaises();
       alCambiar(resultado.partida);
     } else {
       setError(resultado.error);
@@ -41,6 +58,10 @@ export function VistaDePartida({ partida, alCambiar }: { partida: Partida; alCam
       return;
     }
     const esPropio = paises.find((enJuego) => enJuego.nombre === pais)?.ocupante === enTurno.color;
+    if (modoEnJuego === "reagrupar") {
+      elegirParaReagrupar(pais, esPropio);
+      return;
+    }
     if (esPropio) {
       // Un país propio cambia el origen; elegir de nuevo el mismo lo suelta.
       setOrigen(pais === origen ? null : pais);
@@ -52,14 +73,48 @@ export function VistaDePartida({ partida, alCambiar }: { partida: Partida; alCam
     }
   };
 
+  // El primer país es el origen y el segundo, el destino; elegir de nuevo uno de los dos lo suelta.
+  // Si el destino no se puede, lo explica el motor al mover.
+  const elegirParaReagrupar = (pais: NombreDePais, esPropio: boolean) => {
+    setError(null);
+    if (pais === origen) {
+      soltarPaises();
+    } else if (pais === destino) {
+      setDestino(null);
+    } else if (origen === null) {
+      if (esPropio) setOrigen(pais);
+      else setError("Primero elegí un país tuyo para reagrupar desde él.");
+    } else {
+      setDestino(pais);
+    }
+  };
+
+  const cambiarDeModo = (nuevo: "atacar" | "reagrupar") => {
+    setModo(nuevo);
+    soltarPaises();
+    setError(null);
+  };
+
+  const plural = (n: number | undefined) => `${n} ejército${n === 1 ? "" : "s"}`;
+  const indicacionDeReagrupe =
+    origen === null
+      ? reagrupo
+        ? "Ya reagrupaste: podés seguir reagrupando o pasar el turno."
+        : "Elegí un país tuyo para reagrupar desde él."
+      : destino === null
+        ? `Reagrupando desde ${origen} (${plural(ejercitosDeOrigen)}): elegí un país tuyo al que se llegue por países tuyos.`
+        : `Reagrupando de ${origen} a ${destino}: elegí cuántos ejércitos mover.`;
+
   const indicacion =
     ronda.tipo === "incorporacion"
       ? porIncorporar > 0
         ? `Elegí un país tuyo para poner 1 ejército (te quedan ${porIncorporar}).`
         : "Ya pusiste todos tus ejércitos: pasá el turno."
-      : origen === null
-        ? "Elegí un país tuyo para atacar desde él, o pasá el turno."
-        : `Atacando desde ${origen} (${ejercitosDeOrigen} ejército${ejercitosDeOrigen === 1 ? "" : "s"}): elegí un país limítrofe de otro jugador.`;
+      : modoEnJuego === "reagrupar"
+        ? indicacionDeReagrupe
+        : origen === null
+          ? "Elegí un país tuyo para atacar desde él, o pasá el turno."
+          : `Atacando desde ${origen} (${plural(ejercitosDeOrigen)}): elegí un país limítrofe de otro jugador.`;
 
   return (
     <>
@@ -112,6 +167,53 @@ export function VistaDePartida({ partida, alCambiar }: { partida: Partida; alCam
               Pasar el turno
             </button>
           </div>
+          {ronda.tipo === "ataque" && (
+            <div className="barra-del-mapa-fila">
+              <div className="modos" role="group" aria-label="Qué hacer en el turno">
+                <button
+                  type="button"
+                  aria-pressed={modoEnJuego === "atacar"}
+                  disabled={reagrupo}
+                  title={reagrupo ? "Después de reagrupar no se puede atacar en este turno." : undefined}
+                  onClick={() => cambiarDeModo("atacar")}
+                >
+                  Atacar
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={modoEnJuego === "reagrupar"}
+                  onClick={() => cambiarDeModo("reagrupar")}
+                >
+                  Reagrupar
+                </button>
+              </div>
+              {modoEnJuego === "reagrupar" && origen !== null && destino !== null && (
+                // Sin la validación del navegador: si la cantidad no va, lo explica el motor.
+                <form
+                  className="mover"
+                  noValidate
+                  onSubmit={(evento) => {
+                    evento.preventDefault();
+                    aplicar({ tipo: "reagrupar", desde: origen, hacia: destino, cantidad });
+                  }}
+                >
+                  <label>
+                    Ejércitos a mover{" "}
+                    <input
+                      type="number"
+                      min={1}
+                      max={Math.max(1, (ejercitosDeOrigen ?? 1) - 1)}
+                      value={cantidad}
+                      onChange={(evento) => setCantidad(evento.target.valueAsNumber)}
+                    />
+                  </label>
+                  <button type="submit" className="principal">
+                    Mover
+                  </button>
+                </form>
+              )}
+            </div>
+          )}
           {tirada && <ResultadoDeLaTirada tirada={tirada} nombreDe={nombreDe} />}
           {error && <p role="alert">{error}</p>}
         </div>
@@ -119,6 +221,8 @@ export function VistaDePartida({ partida, alCambiar }: { partida: Partida; alCam
           partida={partida}
           nombreDe={nombreDe}
           seleccionado={ronda.tipo === "ataque" ? origen : null}
+          modo={modoEnJuego}
+          destino={ronda.tipo === "ataque" ? destino : null}
           alElegirPais={alElegirPais}
         />
       </section>
