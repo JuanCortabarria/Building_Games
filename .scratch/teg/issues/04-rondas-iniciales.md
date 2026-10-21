@@ -4,14 +4,14 @@
 
 **Blocked by:** 01 (Crear una partida)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] En la primera ronda inicial cada jugador pone 5 ejércitos, y en la segunda 3, en el orden de juego sorteado.
-- [ ] Un jugador solo puede poner ejércitos en países que ocupa; si no, el motor devuelve un error que lo explica.
-- [ ] Un jugador no puede pasar el turno hasta poner todos los ejércitos que le tocan.
-- [ ] Un jugador puede repartir sus ejércitos entre sus países como quiera.
-- [ ] Después de la segunda ronda inicial empieza la ronda de ataque 1, con el mismo orden, y cada jugador puede pasar su turno.
-- [ ] La pantalla muestra siempre el jugador en turno, la ronda que se juega y su tipo, y los ejércitos que quedan por poner.
+- [x] En la primera ronda inicial cada jugador pone 5 ejércitos, y en la segunda 3, en el orden de juego sorteado.
+- [x] Un jugador solo puede poner ejércitos en países que ocupa; si no, el motor devuelve un error que lo explica.
+- [x] Un jugador no puede pasar el turno hasta poner todos los ejércitos que le tocan.
+- [x] Un jugador puede repartir sus ejércitos entre sus países como quiera.
+- [x] Después de la segunda ronda inicial empieza la ronda de ataque 1, con el mismo orden, y cada jugador puede pasar su turno.
+- [x] La pantalla muestra siempre el jugador en turno, la ronda que se juega y su tipo, y los ejércitos que quedan por poner.
 
 ## Comments
 

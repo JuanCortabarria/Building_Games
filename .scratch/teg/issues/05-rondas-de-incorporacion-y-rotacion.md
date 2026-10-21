@@ -4,16 +4,16 @@
 
 **Blocked by:** 04 (Rondas iniciales)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Las rondas de ataque y de incorporación se alternan después de las rondas iniciales.
-- [ ] La rotación sigue el ejemplo de A, B y C de arriba.
-- [ ] Un jugador con 17 países recibe 8 ejércitos; uno con 4 países recibe 3.
-- [ ] Un jugador que ocupa un continente entero recibe sus ejércitos extra (América del Sur 3, América del Norte 5, Europa 5, Asia 7, África 3, Oceanía 2), uno por cada continente completo.
-- [ ] Los ejércitos extra de un continente solo se pueden poner en países de ese continente; si no, el motor devuelve un error que lo explica.
-- [ ] La cantidad a incorporar se calcula con los países que el jugador tiene al empezar su turno de incorporación.
-- [ ] Un jugador no puede pasar el turno de incorporación hasta poner todos sus ejércitos.
-- [ ] La pantalla muestra los ejércitos que quedan por poner, separados entre los generales y los de cada continente.
+- [x] Las rondas de ataque y de incorporación se alternan después de las rondas iniciales.
+- [x] La rotación sigue el ejemplo de A, B y C de arriba.
+- [x] Un jugador con 17 países recibe 8 ejércitos; uno con 4 países recibe 3.
+- [x] Un jugador que ocupa un continente entero recibe sus ejércitos extra (América del Sur 3, América del Norte 5, Europa 5, Asia 7, África 3, Oceanía 2), uno por cada continente completo.
+- [x] Los ejércitos extra de un continente solo se pueden poner en países de ese continente; si no, el motor devuelve un error que lo explica.
+- [x] La cantidad a incorporar se calcula con los países que el jugador tiene al empezar su turno de incorporación.
+- [x] Un jugador no puede pasar el turno de incorporación hasta poner todos sus ejércitos.
+- [x] La pantalla muestra los ejércitos que quedan por poner, separados entre los generales y los de cada continente.
 
 ## Comments
 
@@ -37,3 +37,5 @@
 - **El error de poner extras fuera de su continente** dice hasta cuántos ejércitos se pueden poner en ese país y qué continentes tienen extras que no van ahí. Por ejemplo: "Ana puede poner hasta 8 ejércitos en Argentina. Los extra de Oceanía solo se pueden poner en países de Oceanía."
 - **El error de pasar el turno con ejércitos por poner da el total**, sin separar por continente: el desglose ya está en la pantalla.
 - **La pantalla muestra el desglose solo cuando hay extras.** Si solo hay generales, alcanza con el total. Se mantiene la línea "Tipo de ronda", que ahora sale de un mapa que solo traduce `tipo`.
+
+**2026-10-20, cierre:** integrado en `main`. Dos matices del code review quedan anotados: (1) el test de "se calcula al empezar el turno" todavía no distingue entre el turno y la ronda, porque sin conquistas los países no cambian a mitad de ronda; el ticket 07 puede cubrirlo. (2) La pantalla muestra el desglose por continente solo cuando hay ejércitos extra.

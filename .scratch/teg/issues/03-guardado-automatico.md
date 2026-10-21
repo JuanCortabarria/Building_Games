@@ -4,13 +4,13 @@
 
 **Blocked by:** 01 (Crear una partida)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Después de cada acción, el estado de la partida queda guardado en el navegador.
-- [ ] Al recargar la página, la partida sigue con los mismos jugadores, países, ejércitos, ronda y turno.
-- [ ] Desde una partida guardada se puede empezar una partida nueva; la anterior se descarta.
-- [ ] Si no hay partida guardada, la aplicación abre en la pantalla para crear una.
-- [ ] Guardar y restaurar usa la capacidad de restaurar del motor; no hay reglas del juego fuera del motor.
+- [x] Después de cada acción, el estado de la partida queda guardado en el navegador.
+- [x] Al recargar la página, la partida sigue con los mismos jugadores, países, ejércitos, ronda y turno.
+- [x] Desde una partida guardada se puede empezar una partida nueva; la anterior se descarta.
+- [x] Si no hay partida guardada, la aplicación abre en la pantalla para crear una.
+- [x] Guardar y restaurar usa la capacidad de restaurar del motor; no hay reglas del juego fuera del motor.
 
 ## Comments
 

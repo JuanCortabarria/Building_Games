@@ -4,13 +4,13 @@
 
 **Blocked by:** 01 (Crear una partida)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Se ven los 50 países, agrupados en sus 6 continentes.
-- [ ] Cada país muestra su nombre, el color de su ocupante y su cantidad de ejércitos, y se actualiza cuando cambia el estado de la partida.
-- [ ] Se ven las 89 líneas entre países limítrofes, incluidas las 15 que cruzan de continente.
-- [ ] Elegir un país en el mapa tiene el mismo efecto que elegirlo en la lista que reemplaza: toda acción que ya se podía hacer sobre un país se puede hacer desde el mapa.
-- [ ] El mapa se lee en una pantalla de computadora sin tener que desplazarse para ver todos los continentes.
+- [x] Se ven los 50 países, agrupados en sus 6 continentes.
+- [x] Cada país muestra su nombre, el color de su ocupante y su cantidad de ejércitos, y se actualiza cuando cambia el estado de la partida.
+- [x] Se ven las 89 líneas entre países limítrofes, incluidas las 15 que cruzan de continente.
+- [x] Elegir un país en el mapa tiene el mismo efecto que elegirlo en la lista que reemplaza: toda acción que ya se podía hacer sobre un país se puede hacer desde el mapa.
+- [x] El mapa se lee en una pantalla de computadora sin tener que desplazarse para ver todos los continentes.
 
 ## Comments
 

@@ -4,14 +4,14 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Se puede crear una partida con 2 a 6 jugadores; con menos de 2 o más de 6, el motor devuelve un error que lo explica.
-- [ ] Cada jugador tiene nombre y uno de los seis colores (azul, rojo, negro, amarillo, verde, magenta); dos jugadores no pueden tener el mismo color.
-- [ ] El orden de juego sale de la fuente de azar recibida al crear la partida.
-- [ ] Los 50 países se reparten de a uno en el orden de juego; si no se dividen exacto, los primeros en el orden tienen un país más (por ejemplo, con 4 jugadores: 13, 13, 12 y 12).
-- [ ] Cada país empieza con 1 ejército de su ocupante.
-- [ ] Las consultas del motor exponen el mapa: 50 países, 6 continentes con la cantidad de países y los ejércitos extra de cada uno, y 89 pares limítrofes simétricos (por ejemplo, Kamchatka y Alaska son limítrofes; Tartaria y Rusia no).
-- [ ] Restaurar una partida a partir de su estado da una partida igual a la original.
-- [ ] La pantalla muestra el orden de juego y los países por continente con el color de su ocupante y sus ejércitos.
-- [ ] Los tests del motor entran solo por su interfaz pública y usan una fuente de azar fijada a mano.
+- [x] Se puede crear una partida con 2 a 6 jugadores; con menos de 2 o más de 6, el motor devuelve un error que lo explica.
+- [x] Cada jugador tiene nombre y uno de los seis colores (azul, rojo, negro, amarillo, verde, magenta); dos jugadores no pueden tener el mismo color.
+- [x] El orden de juego sale de la fuente de azar recibida al crear la partida.
+- [x] Los 50 países se reparten de a uno en el orden de juego; si no se dividen exacto, los primeros en el orden tienen un país más (por ejemplo, con 4 jugadores: 13, 13, 12 y 12).
+- [x] Cada país empieza con 1 ejército de su ocupante.
+- [x] Las consultas del motor exponen el mapa: 50 países, 6 continentes con la cantidad de países y los ejércitos extra de cada uno, y 89 pares limítrofes simétricos (por ejemplo, Kamchatka y Alaska son limítrofes; Tartaria y Rusia no).
+- [x] Restaurar una partida a partir de su estado da una partida igual a la original.
+- [x] La pantalla muestra el orden de juego y los países por continente con el color de su ocupante y sus ejércitos.
+- [x] Los tests del motor entran solo por su interfaz pública y usan una fuente de azar fijada a mano.
