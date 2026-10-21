@@ -1,5 +1,7 @@
 # Límites entre países del TEG clásico
 
+> **El juego ya no usa esta lista.** Los límites salen del tablero propio: ver [`tablero-limites.md`](./tablero-limites.md). Esta lista queda como referencia del clásico y para decidir los casos en que el tablero es ambiguo.
+
 Fuente: `common/limitrof.h` y `common/country.cpp` del TEG digital de Ricardo Quesada (*Tenes Empanadas Graciela*), repo `wfx/teg`, commit `47b44af`. Se tomó solo el dato de qué países son limítrofes, no el código (que es GPL). La versión de 2014 del mismo repo tiene los mismos pares.
 
 **89 pares.** La relación es simétrica: si A limita con B, B limita con A. No se distingue frontera terrestre de ruta marítima: las dos cuentan igual.

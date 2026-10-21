@@ -3,8 +3,9 @@
 Fuentes que aportó el usuario. Son **hechos sobre el juego de mesa**, no decisiones sobre la aplicación: las decisiones salen del grilling y quedan en `GLOSSARY.md` y `docs/adr/`.
 
 - [`teg-reglas.md`](./teg-reglas.md): guía de reglas del T.E.G. clásico, escrita con palabras propias (no es el manual oficial).
-- [`teg-tablero.webp`](./teg-tablero.webp): imagen ilustrativa del tablero. Sirve como referencia visual, **no** como fuente de los límites.
-- [`teg-limites.md`](./teg-limites.md): los 89 pares de países limítrofes del TEG clásico, sacados del TEG digital de Ricardo Quesada.
+- [`teg-tablero.webp`](./teg-tablero.webp): el tablero propio que dibujó el usuario (versión del 2026-10-21). **Es la fuente de los límites del juego.**
+- [`tablero-limites.md`](./tablero-limites.md): los 97 pares de países limítrofes leídos del tablero propio, con las diferencias con el clásico y cómo se leyeron los casos dudosos.
+- [`teg-limites.md`](./teg-limites.md): los 89 pares de países limítrofes del TEG clásico, sacados del TEG digital de Ricardo Quesada. Queda como referencia y para decidir los casos en que el tablero es ambiguo.
 - [`teg-tarjetas-y-objetivos.md`](./teg-tarjetas-y-objetivos.md): las 50 tarjetas de país con su símbolo, los 15 objetivos secretos y el objetivo común.
 
 ## Inconsistencias y huecos conocidos
@@ -15,13 +16,12 @@ Se relevaron comparando las dos fuentes entre sí (2026-10-20). Cada uno es una 
 
 Los 50 países rotulados en el tablero coinciden con los de las reglas, y la cantidad por continente también. Quedan estas diferencias:
 
-- **África:** el tablero tiene una región **sin nombre** al oeste de Zaire y al sur del Sahara. Las reglas y la leyenda dicen 6 países. *Resuelto en el grilling: es decoración, no un país.*
-- **Oceanía:** hay islas chicas sin nombre al este de Borneo. *Resuelto en el grilling: son decoración.*
+- **Tierras sin nombre:** la isla al norte de Yukón, la isla al oeste de Gran Bretaña y las islas chicas al este de Borneo son decoración, no países. (El primer tablero tenía además una región sin nombre al oeste de Zaire; el tablero nuevo ya no la tiene.)
 - **Colores:** América del Norte y África usan casi el mismo tono.
 
-### Los límites salen de `teg-limites.md`, no de la imagen
+### Los límites salen del tablero propio
 
-Las reglas no listan los pares limítrofes, y la imagen no coincide con el TEG clásico: por ejemplo, dibuja a Tartaria pegada a Rusia, y no son limítrofes. Los límites salen de [`teg-limites.md`](./teg-limites.md).
+El primer tablero no coincidía con el TEG clásico (por ejemplo, dibujaba a Tartaria pegada a Rusia) y se usaban los límites del clásico. Desde el 2026-10-21 el usuario rehízo el tablero con sus propias conexiones y ese tablero manda: ver [`tablero-limites.md`](./tablero-limites.md) y [`docs/adr/0001-los-limites-salen-del-tablero.md`](../adr/0001-los-limites-salen-del-tablero.md).
 
 ### Las reglas dejan puntos a "según tu edición"
 

@@ -13,3 +13,11 @@
 - [ ] El tablero entra en una pantalla de 1280×720 sin desplazamiento horizontal.
 - [ ] La pantalla no contiene reglas: qué se puede atacar o hacia dónde reagrupar sale de las consultas del motor.
 - [ ] Se borran el mapa esquemático y su disposición (`MapaEsquematico.tsx`, `disposicion-del-mapa.ts`) cuando dejan de usarse.
+
+## Comments
+
+**2026-10-21, tablero nuevo:** el usuario rehízo el tablero y `docs/reference/teg-tablero.webp` ya es la versión nueva (1516×1038). Tiene los mismos 50 países, pero algunos están en otro lugar (por ejemplo, ahora Gobi está entre Irán y China), así que las posiciones de `puntos.ts` del prototipo ya no sirven. Como punto de partida, el centro aproximado del nombre de cada país en la imagen nueva, en píxeles (x, y), medido al leer el tablero:
+
+Alaska (102, 202), Yukón (233, 173), Canadá (283, 250), Groenlandia (470, 173), Labrador (427, 251), Terranova (469, 305), Oregón (100, 305), Nueva York (351, 326), California (253, 372), México (218, 447), Colombia (333, 566), Perú (307, 640), Brasil (465, 656), Chile (307, 750), Argentina (390, 798), Uruguay (492, 750), Islandia (678, 212), Suecia (845, 234), Rusia (972, 231), Gran Bretaña (712, 305), Alemania (826, 338), Polonia (960, 338), Francia (787, 385), Italia (868, 413), España (706, 424), Sahara (756, 566), Egipto (936, 571), Zaire (800, 645), Etiopía (910, 643), Sudáfrica (845, 695), Madagascar (1010, 711), Tartaria (1119, 188), Taimir (1260, 185), Kamchatka (1434, 237), Siberia (1260, 268), Aral (1103, 295), Mongolia (1243, 331), Irán (1114, 390), Gobi (1208, 395), China (1301, 420), Turquía (1000, 408), Israel (1008, 468), Arabia (1094, 480), India (1186, 513), Japón (1452, 404), Malasia (1332, 585), Sumatra (1243, 683), Borneo (1388, 676), Australia (1339, 800), Java (1325, 892).
+
+Las fichas no tienen que ir justo ahí: no deben tapar el nombre.

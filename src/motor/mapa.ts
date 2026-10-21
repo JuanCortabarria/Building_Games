@@ -1,4 +1,5 @@
-// Datos del mapa clásico del TEG. Fuente: docs/reference/teg-limites.md.
+// Datos del mapa del TEG. Los países y continentes son los del clásico; los límites son los del tablero
+// propio (docs/reference/teg-tablero.webp), listados en docs/reference/tablero-limites.md.
 
 export const CONTINENTES = [
   {
@@ -67,7 +68,7 @@ export const PAISES: readonly { nombre: NombreDePais; continente: NombreDeContin
   (continente) => continente.paises.map((nombre) => ({ nombre, continente: continente.nombre })),
 );
 
-/** Los 89 pares de países limítrofes. La relación es simétrica: cada par se anota una sola vez. */
+/** Los 97 pares de países limítrofes. La relación es simétrica: cada par se anota una sola vez. */
 export const PARES_LIMITROFES: readonly (readonly [NombreDePais, NombreDePais])[] = [
   ["Argentina", "Brasil"],
   ["Argentina", "Chile"],
@@ -83,14 +84,15 @@ export const PARES_LIMITROFES: readonly (readonly [NombreDePais, NombreDePais])[
   ["California", "México"],
   ["California", "Nueva York"],
   ["California", "Oregón"],
+  ["California", "Terranova"],
+  ["Canadá", "Labrador"],
   ["Canadá", "Nueva York"],
   ["Canadá", "Oregón"],
-  ["Canadá", "Terranova"],
   ["Canadá", "Yukón"],
   ["Groenlandia", "Labrador"],
-  ["Groenlandia", "Nueva York"],
+  ["Groenlandia", "Terranova"],
+  ["Labrador", "Nueva York"],
   ["Labrador", "Terranova"],
-  ["Nueva York", "Oregón"],
   ["Nueva York", "Terranova"],
   ["Oregón", "Yukón"],
   ["Alemania", "Francia"],
@@ -102,8 +104,11 @@ export const PARES_LIMITROFES: readonly (readonly [NombreDePais, NombreDePais])[
   ["Francia", "Italia"],
   ["Gran Bretaña", "Islandia"],
   ["Islandia", "Suecia"],
+  ["Italia", "Polonia"],
   ["Polonia", "Rusia"],
   ["Rusia", "Suecia"],
+  ["Arabia", "India"],
+  ["Arabia", "Irán"],
   ["Arabia", "Israel"],
   ["Arabia", "Turquía"],
   ["Aral", "Irán"],
@@ -118,15 +123,16 @@ export const PARES_LIMITROFES: readonly (readonly [NombreDePais, NombreDePais])[
   ["China", "Malasia"],
   ["China", "Mongolia"],
   ["China", "Siberia"],
+  ["Gobi", "India"],
   ["Gobi", "Irán"],
   ["Gobi", "Mongolia"],
   ["India", "Irán"],
-  ["India", "Malasia"],
   ["Irán", "Mongolia"],
   ["Irán", "Turquía"],
   ["Israel", "Turquía"],
   ["Japón", "Kamchatka"],
   ["Kamchatka", "Siberia"],
+  ["Kamchatka", "Taimir"],
   ["Mongolia", "Siberia"],
   ["Siberia", "Taimir"],
   ["Siberia", "Tartaria"],
@@ -134,16 +140,18 @@ export const PARES_LIMITROFES: readonly (readonly [NombreDePais, NombreDePais])[
   ["Egipto", "Etiopía"],
   ["Egipto", "Madagascar"],
   ["Egipto", "Sahara"],
+  ["Etiopía", "Madagascar"],
   ["Etiopía", "Sahara"],
   ["Etiopía", "Sudáfrica"],
   ["Etiopía", "Zaire"],
-  ["Madagascar", "Zaire"],
+  ["Madagascar", "Sudáfrica"],
   ["Sahara", "Zaire"],
   ["Sudáfrica", "Zaire"],
   ["Australia", "Borneo"],
   ["Australia", "Java"],
   ["Australia", "Sumatra"],
   ["Alaska", "Kamchatka"],
+  ["Aral", "Polonia"],
   ["Aral", "Rusia"],
   ["Australia", "Chile"],
   ["Borneo", "Malasia"],
@@ -155,7 +163,8 @@ export const PARES_LIMITROFES: readonly (readonly [NombreDePais, NombreDePais])[
   ["España", "Sahara"],
   ["Groenlandia", "Islandia"],
   ["India", "Sumatra"],
+  ["Irán", "Polonia"],
   ["Irán", "Rusia"],
   ["Polonia", "Turquía"],
-  ["Rusia", "Turquía"],
+  ["Rusia", "Tartaria"],
 ];
