@@ -108,7 +108,8 @@ describe("reagrupar en el orden del turno", () => {
   });
 
   it("en el turno siguiente, Beto puede atacar aunque Ana haya reagrupado en el suyo", () => {
-    // Chile tiene 3 ejércitos y tira 2 dados (6, 6); Argentina tiene 5 y tira 3 (1, 1, 1). Beto gana los dos pares.
+    // Después del reagrupe, Argentina tiene 7. Chile tiene 3 y tira 2 dados (6, 6); Argentina tira 3 (1, 1, 1).
+    // Beto gana los dos pares y Argentina queda con 5.
     const partida = turnoDeAna({
       ana: ["Argentina", "Brasil"],
       beto: ["Chile"],
@@ -124,12 +125,13 @@ describe("reagrupar en el orden del turno", () => {
   });
 
   it("Ana puede atacar y después reagrupar en el mismo turno", () => {
-    // Argentina tiene 4 y tira 3 dados (6, 6, 6); Chile tiene 2 y tira 2 (1, 1). Chile pierde 2 de 2 y Ana lo conquista.
+    // Argentina tiene 4 y tira 3 dados (6, 6, 1); Chile tiene 3 y tira 3 (5, 5, 5). Ana gana dos pares y pierde
+    // el tercero: Argentina queda con 3 y Chile con 1, sin conquista.
     const partida = turnoDeAna({
       ana: ["Argentina", "Brasil"],
       beto: ["Chile"],
-      ejercitos: { Argentina: 4, Brasil: 3, Chile: 2 },
-      dados: [6, 6, 6, 1, 1],
+      ejercitos: { Argentina: 4, Brasil: 3, Chile: 3 },
+      dados: [6, 6, 1, 5, 5, 5],
     });
     const atacada = partidaDe(partida.aplicar({ tipo: "atacar", desde: "Argentina", hacia: "Chile" }));
 
