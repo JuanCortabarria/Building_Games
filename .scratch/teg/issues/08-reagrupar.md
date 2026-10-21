@@ -4,7 +4,7 @@
 
 **Blocked by:** 06 (Atacar con una tirada de dados)
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [x] Se pueden mover ejércitos entre dos países propios limítrofes.
 - [x] Se pueden mover ejércitos entre dos países propios no limítrofes si hay un camino de países propios limítrofes entre ellos (por ejemplo, de Brasil a Chile pasando por Argentina, si los tres son del jugador).

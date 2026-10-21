@@ -4,16 +4,16 @@
 
 **Blocked by:** 05 (Rondas de incorporación y rotación), 06 (Atacar con una tirada de dados)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Un país que se queda sin ejércitos pasa a ser del atacante.
-- [ ] El atacante mueve entre 1 y 3 ejércitos al país conquistado, dejando al menos 1 en el de origen; con 2 ejércitos en el origen, solo puede mover 1.
-- [ ] Hasta mover los ejércitos al país conquistado, cualquier otra acción devuelve un error.
-- [ ] Un jugador que pierde su último país queda destruido y no vuelve a tener turnos.
-- [ ] Con A, B y C, si B queda destruido durante la ronda de ataque 2, la ronda de incorporación 2 es C, A.
-- [ ] Un jugador que llega a 30 países gana en el acto, aunque esté en medio de su turno de ataque.
-- [ ] Con 2 jugadores, destruir al rival da la victoria (el ganador ocupa los 50 países).
-- [ ] Con un ganador, el motor rechaza cualquier acción y la pantalla muestra quién ganó.
+- [x] Un país que se queda sin ejércitos pasa a ser del atacante.
+- [x] El atacante mueve entre 1 y 3 ejércitos al país conquistado, dejando al menos 1 en el de origen; con 2 ejércitos en el origen, solo puede mover 1.
+- [x] Hasta mover los ejércitos al país conquistado, cualquier otra acción devuelve un error.
+- [x] Un jugador que pierde su último país queda destruido y no vuelve a tener turnos.
+- [x] Con A, B y C, si B queda destruido durante la ronda de ataque 2, la ronda de incorporación 2 es C, A.
+- [x] Un jugador que llega a 30 países gana en el acto, aunque esté en medio de su turno de ataque.
+- [x] Con 2 jugadores, destruir al rival da la victoria (el ganador ocupa los 50 países).
+- [x] Con un ganador, el motor rechaza cualquier acción y la pantalla muestra quién ganó.
 
 ## Comments
 
