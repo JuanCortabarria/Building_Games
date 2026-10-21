@@ -49,6 +49,18 @@ describe("alternancia y rotación de las rondas", () => {
   });
 });
 
+describe("la forma de la ronda", () => {
+  // Lo verifica el compilador: si el tipo dejara escribir estas rondas, el @ts-expect-error sobraría y fallaría el typecheck.
+  it("las rondas iniciales son siempre de incorporación, y son solo dos", () => {
+    // @ts-expect-error: una ronda de ataque nunca es inicial.
+    const ataqueInicial: Ronda = { tipo: "ataque", inicial: true, numero: 1 };
+    // @ts-expect-error: hay dos rondas iniciales, no tres.
+    const terceraInicial: Ronda = { tipo: "incorporacion", inicial: true, numero: 3 };
+
+    expect([ataqueInicial, terceraInicial]).toHaveLength(2);
+  });
+});
+
 describe("jugadores destruidos", () => {
   // Un jugador sin países está destruido. Destruir a alguien llega con los ataques: acá la situación se arma restaurando.
 

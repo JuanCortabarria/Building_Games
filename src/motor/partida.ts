@@ -34,12 +34,11 @@ export interface EjercitosPorIncorporar {
   porContinente: Partial<Record<NombreDeContinente, number>>;
 }
 
-export interface Ronda {
-  tipo: "incorporacion" | "ataque";
-  /** Las dos primeras rondas de la partida son las rondas iniciales, de incorporación. */
-  inicial: boolean;
-  numero: number;
-}
+/** Las dos primeras rondas de la partida son las rondas iniciales, de incorporación. */
+export type Ronda =
+  | { tipo: "incorporacion"; inicial: true; numero: 1 | 2 }
+  | { tipo: "incorporacion"; inicial: false; numero: number }
+  | { tipo: "ataque"; inicial: false; numero: number };
 
 export interface PaisEnJuego {
   nombre: NombreDePais;
