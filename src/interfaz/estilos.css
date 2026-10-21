@@ -269,7 +269,7 @@ button.principal {
   font-size: 1.4em;
 }
 
-.mano {
+.tarjetas-del-jugador {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;

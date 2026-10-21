@@ -105,13 +105,8 @@ export function fuenteFija(
         return jugador;
       });
     },
-    mezclarPaises(paises) {
-      return [...primerosPaises, ...paises.filter((pais) => !primerosPaises.includes(pais))];
-    },
-    mezclarTarjetas(tarjetas) {
-      const primeras = primerasTarjetas.filter((tarjeta) => tarjetas.includes(tarjeta));
-      return [...primeras, ...tarjetas.filter((tarjeta) => !primeras.includes(tarjeta))];
-    },
+    mezclarPaises: (paises) => primeroLosFijados(primerosPaises, paises),
+    mezclarTarjetas: (tarjetas) => primeroLosFijados(primerasTarjetas, tarjetas),
     tirarDados(cantidad) {
       if (avance + cantidad > dados.length) {
         throw new Error(
@@ -126,4 +121,10 @@ export function fuenteFija(
     // No tiene semilla: su secuencia es la lista de dados.
     estado: () => ({ semilla: 0, avance }),
   };
+}
+
+/** La lista con los fijados que están en ella primero, en el orden fijado, y el resto después, como viene. */
+function primeroLosFijados<T>(fijados: readonly T[], lista: readonly T[]): T[] {
+  const primeros = fijados.filter((elemento) => lista.includes(elemento));
+  return [...primeros, ...lista.filter((elemento) => !primeros.includes(elemento))];
 }

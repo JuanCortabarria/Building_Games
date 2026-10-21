@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { partidaDe, partidaEnRondaDeAtaque, partidaEnRondaDeIncorporacion, type Situacion } from "./ayudas-de-test";
 import type { NombreDePais } from "./mapa";
 import { crearPartida, restaurarPartida, type Partida } from "./partida";
-import { fuenteFija } from "./azar";
+import { fuenteConSemilla, fuenteFija, reanudarFuente } from "./azar";
 
 /**
  * Ana, Beto y Caro, en la ronda de ataque 1 y en el turno de Ana. Ana tiene Argentina, con 5 ejércitos,
@@ -35,9 +35,7 @@ describe("recibir una tarjeta de país", () => {
 
     expect(despues.tarjetasDe("azul")).toEqual([{ pais: "Japón", simbolo: "cañón" }]);
   });
-});
 
-describe("recibir una tarjeta de país, casos", () => {
   it("quien no conquistó ningún país en su turno no recibe tarjeta", () => {
     const despues = partidaDe(turnoDeAna({ primerasTarjetas: ["Japón"] }).aplicar({ tipo: "pasarTurno" }));
 
@@ -113,6 +111,21 @@ describe("cuando el mazo se acaba", () => {
     expect(despues.tarjetasEnElMazo()).toBe(2);
   });
 
+  it("la mezcla del descarte usa la fuente de azar y guarda dónde quedó, para seguir igual al restaurar", () => {
+    // Con la fuente con semilla: el mismo estado guardado da el mismo mazo nuevo.
+    const conSemilla = (partida: Partida) =>
+      partidaDe(restaurarPartida(partida.estado(), reanudarFuente({ semilla: 11, avance: 0 })));
+    const antes = conSemilla(
+      conquistarChile(turnoDeAna({ mazo: [], descarte: ["Japón", "Brasil", "Java", "Egipto"], dados: [6, 6, 6, 1] })),
+    );
+
+    const despues = partidaDe(antes.aplicar({ tipo: "pasarTurno" }));
+
+    expect(despues.estado().azar.avance).toBeGreaterThan(antes.estado().azar.avance);
+    const otraVez = partidaDe(antes.aplicar({ tipo: "pasarTurno" }));
+    expect(otraVez.tarjetasDe("azul")).toEqual(despues.tarjetasDe("azul"));
+  });
+
   it("si tampoco hay descarte, no se recibe tarjeta", () => {
     const partida = conquistarChile(turnoDeAna({ mazo: [], descarte: [], dados: [6, 6, 6, 1] }));
 
@@ -124,6 +137,18 @@ describe("cuando el mazo se acaba", () => {
 });
 
 describe("el mazo al crear la partida", () => {
+  it("se mezcla con la fuente de azar: la misma semilla da el mismo mazo, y otra semilla otro", () => {
+    const jugadores = [
+      { nombre: "Ana", color: "azul" },
+      { nombre: "Beto", color: "rojo" },
+    ] as const;
+    const mazoCon = (semilla: number) => partidaDe(crearPartida(jugadores, fuenteConSemilla(semilla))).estado().mazo;
+
+    expect(mazoCon(1)).toEqual(mazoCon(1));
+    expect(mazoCon(1)).not.toEqual(mazoCon(2));
+    expect([...mazoCon(1)].sort()).toEqual([...mazoCon(2)].sort());
+  });
+
   it("tiene las 50 tarjetas y ningún jugador tiene tarjetas", () => {
     const partida = turnoDeAna();
 
@@ -348,8 +373,11 @@ describe("la tarjeta recibida al pasar el turno", () => {
 
     const deCaro = partidaDe(deBeto.aplicar({ tipo: "pasarTurno" }));
 
-    expect(turnoDeAna().tarjetaRecibida()).toBeNull();
     expect(deCaro.tarjetaRecibida()).toBeNull();
+  });
+
+  it("al empezar no hay tarjeta recibida", () => {
+    expect(turnoDeAna().tarjetaRecibida()).toBeNull();
   });
 });
 
