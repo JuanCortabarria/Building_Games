@@ -4,9 +4,9 @@
 
 **Blocked by:** None, pero hay que responder primero con `/prototype` (variante de interfaz) cómo se separa la imagen en países.
 
-**Status:** needs-triage
+**Status:** done
 
-- [ ] (a definir después del prototipo)
+- [x] Decidido con el prototipo; la construcción sigue en los tickets 12 y 13.
 
 ## Comments
 
@@ -30,3 +30,9 @@ Preguntas para el prototipo:
 - **Arreglo visto en el prototipo:** algunas fichas tapan parte del nombre del país (Brasil, Terranova, Gran Bretaña). Las posiciones de las fichas salen del centro del nombre medido a ojo (`puntos.ts` en la rama del prototipo) y hay que acomodarlas.
 - **Lo que no hace falta para B:** la separación automática de la imagen en países (`regiones.ts` del prototipo) solo la usaban A y C. Con fichas alcanza un punto por país. Igual sirvió para comparar la imagen con los límites (ver abajo).
 - **Problema encontrado: la imagen no coincide con los límites del juego.** Con la separación del prototipo se comparó qué países se tocan en la imagen contra los 89 pares de `docs/reference/teg-limites.md`. Hay 24 pares limítrofes que no se tocan en la imagen (varios son rutas por mar, como Alaska–Kamchatka o Brasil–Sahara, y otros son de tierra, como Rusia–Turquía o Irán–Rusia) y unos 30 pares que se ven pegados o muy cerca y no son limítrofes (como Rusia–Tartaria, Aral–Turquía o Italia–Polonia; algunos son solo cercanía a través del agua, como Francia–Gran Bretaña). El usuario lo notó al jugar: "el mapa está mal: la comunicación de los países". Hay que decidir cuál manda antes de dividir este ticket.
+
+**2026-10-21, decisión sobre los límites:** mandan los límites del TEG clásico. El usuario aportó la lista de fronteras con su tipo (tierra o agua), que coincide par por par con los 89 del motor; el tipo quedó en `docs/reference/teg-limites.md`. Cruzado con la imagen: 13 de las 22 fronteras por agua no tienen nada dibujado que las una, 11 fronteras por tierra no se tocan en la imagen (Rusia–Turquía, Irán–Rusia, China–India, China–Irán, India–Irán, Arabia–Turquía, Etiopía–Sahara, California–Nueva York, Nueva York–Oregón, Canadá–Terranova, Argentina–Brasil) y unos 20 pares se ven pegados sin ser limítrofes (como Rusia–Tartaria, Italia–Polonia, Canadá–México o Chile–Uruguay).
+
+Para que el tablero no confunda, el usuario eligió **líneas al elegir un país**: las 22 rutas por agua se dibujan siempre como líneas punteadas, y al elegir un país salen líneas desde su ficha hacia todos sus limítrofes. La imagen no se toca. Se descartó dibujar las 89 conexiones siempre (carga el dibujo) y corregir la imagen (trabajo de dibujo fuera del código).
+
+**Dividido en:** 12 (tablero ilustrado con fichas) y 13 (rutas por agua y líneas al elegir).
