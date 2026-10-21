@@ -8,6 +8,22 @@ export function partidaDe(resultado: ResultadoDePartida): Partida {
   return resultado.partida;
 }
 
+export interface Situacion {
+  jugadores: string[];
+  paises: Record<string, NombreDePais[]>;
+  ejercitos?: Partial<Record<NombreDePais, number>>;
+  resto: string;
+  numero: number;
+  abrio: string;
+  enTurno: string;
+  dados?: number[];
+  primerasTarjetas?: NombreDePais[];
+  tarjetas?: Record<string, NombreDePais[]>;
+  canjes?: Record<string, number>;
+  mazo?: NombreDePais[];
+  descarte?: NombreDePais[];
+}
+
 /**
  * Una partida a mitad de una ronda de ataque, armada restaurando un estado construido para el caso.
  *
@@ -17,8 +33,24 @@ export function partidaDe(resultado: ResultadoDePartida): Partida {
  * - `ejercitos`: los ejércitos de los países que no tienen 1.
  * - `abrio` y `enTurno`: quién abrió la ronda y de quién es el turno.
  * - `dados`: los dados que va a tirar la partida, en orden (ver `fuenteFija`).
+ * - `primerasTarjetas`: las tarjetas con que empieza el mazo, y las que deja primeras cada mezcla (ver `fuenteFija`).
+ * - `tarjetas` y `canjes`: las tarjetas que tiene cada jugador y cuántos canjes hizo. Las tarjetas
+ *   que se reparten así salen del mazo.
+ * - `mazo` y `descarte`: si se dan, el mazo y el descarte exactos.
  */
-export function partidaEnRondaDeAtaque({
+export function partidaEnRondaDeAtaque(situacion: Situacion): Partida {
+  return partidaEnRonda({ ...situacion, tipo: "ataque" });
+}
+
+/**
+ * Una partida a mitad de una ronda de incorporación que no es inicial, como `partidaEnRondaDeAtaque`.
+ * `porIncorporar` son los ejércitos generales que le quedan por poner al jugador en turno.
+ */
+export function partidaEnRondaDeIncorporacion(situacion: Situacion & { porIncorporar?: number }): Partida {
+  return partidaEnRonda({ ...situacion, tipo: "incorporacion" });
+}
+
+function partidaEnRonda({
   jugadores,
   paises,
   ejercitos = {},
@@ -27,40 +59,46 @@ export function partidaEnRondaDeAtaque({
   abrio,
   enTurno,
   dados,
-}: {
-  jugadores: string[];
-  paises: Record<string, NombreDePais[]>;
-  ejercitos?: Partial<Record<NombreDePais, number>>;
-  resto: string;
-  numero: number;
-  abrio: string;
-  enTurno: string;
-  dados?: number[];
-}): Partida {
+  primerasTarjetas,
+  tarjetas = {},
+  canjes = {},
+  mazo,
+  descarte,
+  tipo,
+  porIncorporar = 0,
+}: Situacion & { tipo: "ataque" | "incorporacion"; porIncorporar?: number }): Partida {
   const datos = jugadores.map((nombre, i) => ({ nombre, color: COLORES[i]! }));
   const posicionDe = (nombre: string) => {
     const posicion = jugadores.indexOf(nombre);
     if (posicion === -1) throw new Error(`${nombre} no está entre los jugadores.`);
     return posicion;
   };
-  const estado = partidaDe(crearPartida(datos, fuenteFija())).estado();
-  for (const pais of PAISES) estado.paises[pais.nombre] = { ocupante: datos[posicionDe(resto)]!.color, ejercitos: 1 };
+  const colorDe = (nombre: string) => datos[posicionDe(nombre)]!.color;
+  const estado = partidaDe(crearPartida(datos, fuenteFija({ primerasTarjetas }))).estado();
+  for (const pais of PAISES) estado.paises[pais.nombre] = { ocupante: colorDe(resto), ejercitos: 1 };
   for (const [nombre, suyos] of Object.entries(paises)) {
-    for (const pais of suyos) estado.paises[pais] = { ocupante: datos[posicionDe(nombre)]!.color, ejercitos: 1 };
+    for (const pais of suyos) estado.paises[pais] = { ocupante: colorDe(nombre), ejercitos: 1 };
   }
   for (const [pais, cantidad] of Object.entries(ejercitos) as [NombreDePais, number][]) {
     estado.paises[pais].ejercitos = cantidad;
   }
+  for (const [nombre, suyas] of Object.entries(tarjetas)) {
+    estado.tarjetas[colorDe(nombre)] = suyas;
+    estado.mazo = estado.mazo.filter((tarjeta) => !suyas.includes(tarjeta));
+  }
+  for (const [nombre, cantidad] of Object.entries(canjes)) estado.canjes[colorDe(nombre)] = cantidad;
+  if (mazo) estado.mazo = mazo;
+  if (descarte) estado.descarte = descarte;
   return partidaDe(
     restaurarPartida(
       {
         ...estado,
-        ronda: { tipo: "ataque", inicial: false, numero },
+        ronda: { tipo, inicial: false, numero },
         abrioLaRonda: posicionDe(abrio),
         turno: posicionDe(enTurno),
-        ejercitosPorIncorporar: { generales: 0, porContinente: {} },
+        ejercitosPorIncorporar: { generales: porIncorporar, porContinente: {} },
       },
-      fuenteFija({ dados }),
+      fuenteFija({ dados, primerasTarjetas }),
     ),
   );
 }
