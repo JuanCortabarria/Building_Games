@@ -209,3 +209,28 @@ button.principal {
   font-weight: bold;
   border: 1px solid #0004;
 }
+
+.orden li.destruido {
+  color: #888;
+}
+
+.orden li.destruido .nombre-del-jugador {
+  text-decoration: line-through;
+}
+
+.mover-al-conquistado {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.conquista {
+  font-weight: bold;
+}
+
+.barra-del-mapa .ganador {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.4em;
+}

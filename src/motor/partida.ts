@@ -4,6 +4,9 @@ import { CONTINENTES, PAISES, PARES_LIMITROFES, type NombreDeContinente, type No
 export const COLORES = ["azul", "rojo", "negro", "amarillo", "verde", "magenta"] as const;
 export type Color = (typeof COLORES)[number];
 
+/** El objetivo común: el primero que ocupa esta cantidad de países gana la partida. */
+export const PAISES_PARA_GANAR = 30;
+
 export const CANTIDAD_DE_JUGADORES = { minima: 2, maxima: 6 } as const;
 
 export interface DatosDeJugador {
@@ -26,6 +29,13 @@ export interface EstadoDePartida {
   azar: EstadoDeAzar;
   /** La última tirada del turno en curso, o nada si en este turno todavía no se atacó. */
   ultimaTirada: Tirada | null;
+  /**
+   * El país que el jugador en turno acaba de conquistar y desde dónde lo atacó, mientras no elija
+   * cuántos ejércitos mover a él. Hasta entonces no puede hacer otra acción.
+   */
+  conquistaPendiente: { desde: NombreDePais; hacia: NombreDePais } | null;
+  /** El color del jugador que ganó, o nada si la partida sigue. Con un ganador no se juega más. */
+  ganador: Color | null;
 }
 
 /** El resultado de una tirada de ataque. */
@@ -73,14 +83,25 @@ export interface DatosDeContinente {
 export type Accion =
   | { tipo: "incorporar"; pais: NombreDePais; cantidad: number }
   | { tipo: "atacar"; desde: NombreDePais; hacia: NombreDePais }
+  /** Cuántos ejércitos pasan, en total, del país de origen al que se acaba de conquistar. */
+  | { tipo: "moverAlConquistado"; cantidad: number }
   | { tipo: "pasarTurno" };
+
+export interface ConquistaPendiente {
+  desde: NombreDePais;
+  hacia: NombreDePais;
+  maximo: number;
+}
 
 export type ResultadoDePartida = { ok: true; partida: Partida } | { ok: false; error: string };
 
 export interface Partida {
   /** El estado como dato simple, para guardarlo y restaurarlo tal cual. */
   estado(): EstadoDePartida;
+  /** Todos los jugadores en orden de juego, también los destruidos, que conservan su lugar. */
   ordenDeJuego(): readonly DatosDeJugador[];
+  /** Los jugadores que perdieron todos sus países, en orden de juego. Ya no tienen turnos. */
+  destruidos(): readonly DatosDeJugador[];
   paises(): readonly PaisEnJuego[];
   continentes(): readonly DatosDeContinente[];
   limitrofesDe(pais: NombreDePais): readonly NombreDePais[];
@@ -88,6 +109,10 @@ export interface Partida {
   jugadorEnTurno(): DatosDeJugador;
   ejercitosPorIncorporar(): EjercitosPorIncorporar;
   ultimaTirada(): Tirada | null;
+  /** El país recién conquistado al que el jugador en turno tiene que mover ejércitos, y cuántos puede mover como máximo. */
+  conquistaPendiente(): ConquistaPendiente | null;
+  /** El jugador que ganó, o nada si la partida sigue. */
+  ganador(): DatosDeJugador | null;
   /** Aplica una acción y devuelve la partida que queda, o un error que explica qué regla la impide. */
   aplicar(accion: Accion): ResultadoDePartida;
 }
@@ -132,6 +157,8 @@ export function crearPartida(
     ejercitosPorIncorporar: NINGUN_EJERCITO,
     azar: azar.estado(),
     ultimaTirada: null,
+    conquistaPendiente: null,
+    ganador: null,
   });
   return { ok: true, partida: partidaDesde(estado, azar) };
 }
@@ -161,6 +188,8 @@ function partidaDesde(estado: EstadoDePartida, azar: FuenteDeAzar): Partida {
   return {
     estado: () => structuredClone(estado),
     ordenDeJuego: () => estado.jugadores.map((jugador) => ({ ...jugador })),
+    destruidos: () =>
+      estado.jugadores.filter((_, posicion) => estaDestruido(estado, posicion)).map((jugador) => ({ ...jugador })),
     paises: () => PAISES.map((pais) => ({ ...pais, ...estado.paises[pais.nombre] })),
     continentes: () =>
       CONTINENTES.map((continente) => ({
@@ -173,13 +202,17 @@ function partidaDesde(estado: EstadoDePartida, azar: FuenteDeAzar): Partida {
     jugadorEnTurno: () => ({ ...jugadorEnTurno(estado) }),
     ejercitosPorIncorporar: () => structuredClone(estado.ejercitosPorIncorporar),
     ultimaTirada: () => structuredClone(estado.ultimaTirada),
+    conquistaPendiente: () => {
+      if (estado.conquistaPendiente === null) return null;
+      const { desde, hacia } = estado.conquistaPendiente;
+      return { desde, hacia, maximo: maximoAMover(estado, desde) };
+    },
+    ganador: () => {
+      const ganador = estado.jugadores.find((jugador) => jugador.color === estado.ganador);
+      return ganador ? { ...ganador } : null;
+    },
     aplicar: (accion) => {
-      const resultado =
-        accion.tipo === "incorporar"
-          ? incorporar(estado, accion)
-          : accion.tipo === "atacar"
-            ? atacar(estado, accion, azar.reanudar(estado.azar))
-            : pasarTurno(estado);
+      const resultado = aplicar(estado, accion, azar);
       return resultado.ok ? { ok: true, partida: partidaDesde(resultado.estado, azar) } : resultado;
     },
   };
@@ -190,6 +223,23 @@ function limitrofesDe(pais: NombreDePais): NombreDePais[] {
 }
 
 type ResultadoDeAccion = { ok: true; estado: EstadoDePartida } | { ok: false; error: string };
+
+function aplicar(estado: EstadoDePartida, accion: Accion, azar: FuenteDeAzar): ResultadoDeAccion {
+  if (estado.ganador !== null) {
+    return { ok: false, error: `La partida terminó: ganó ${nombreDe(estado, estado.ganador)}.` };
+  }
+  if (accion.tipo === "moverAlConquistado") return moverAlConquistado(estado, accion);
+  if (estado.conquistaPendiente !== null) {
+    const { hacia } = estado.conquistaPendiente;
+    return {
+      ok: false,
+      error: `${jugadorEnTurno(estado).nombre} tiene que mover ejércitos a ${hacia}, que acaba de conquistar, antes de hacer otra cosa.`,
+    };
+  }
+  if (accion.tipo === "incorporar") return incorporar(estado, accion);
+  if (accion.tipo === "atacar") return atacar(estado, accion, azar.reanudar(estado.azar));
+  return pasarTurno(estado);
+}
 
 function incorporar(estado: EstadoDePartida, { pais, cantidad }: { pais: NombreDePais; cantidad: number }): ResultadoDeAccion {
   const enTurno = jugadorEnTurno(estado);
@@ -295,17 +345,25 @@ function atacar(
   }
   let quedanEnOrigen = { ...origen, ejercitos: origen.ejercitos - perdidosDelAtacante };
   let quedanEnDestino = { ...destino, ejercitos: destino.ejercitos - perdidosDelDefensor };
-  if (quedanEnDestino.ejercitos === 0) {
-    // Un país nunca queda vacío: lo conquista el atacante, que mueve 1 ejército. Elegir cuántos mover
-    // es del ticket 07. Al origen le quedan al menos 2, porque el defensor perdió todos los pares.
+  const conquista = quedanEnDestino.ejercitos === 0;
+  if (conquista) {
+    // Un país nunca queda vacío: lo ocupa el atacante con 1 ejército, el mínimo que tiene que mover, y
+    // después elige si mueve más. Al origen le quedan al menos 2, porque el defensor perdió todos los pares.
     quedanEnOrigen = { ...quedanEnOrigen, ejercitos: quedanEnOrigen.ejercitos - 1 };
     quedanEnDestino = { ocupante: enTurno.color, ejercitos: 1 };
   }
+  const paises = { ...estado.paises, [desde]: quedanEnOrigen, [hacia]: quedanEnDestino };
+  // Solo una conquista cambia quién ocupa cada país, así que es el único momento en que alguien puede ganar.
+  // Gana en el acto: no se juega más, ni siquiera el movimiento al país conquistado.
+  const suyos = PAISES.filter((pais) => paises[pais.nombre].ocupante === enTurno.color).length;
+  const gana = conquista && suyos >= PAISES_PARA_GANAR;
   return {
     ok: true,
     estado: {
       ...estado,
-      paises: { ...estado.paises, [desde]: quedanEnOrigen, [hacia]: quedanEnDestino },
+      paises,
+      conquistaPendiente: conquista && !gana ? { desde, hacia } : null,
+      ganador: gana ? enTurno.color : null,
       azar: azar.estado(),
       ultimaTirada: {
         atacante: { pais: desde, color: origen.ocupante, dados: dadosDelAtacante, perdidos: perdidosDelAtacante },
@@ -313,6 +371,47 @@ function atacar(
       },
     },
   };
+}
+
+/**
+ * Cuántos ejércitos, en total, puede pasar el atacante al país que conquistó: hasta 3, y siempre
+ * dejando 1 en el origen. El ejército que ya pasó al conquistar cuenta dentro de ese total.
+ */
+function maximoAMover(estado: EstadoDePartida, desde: NombreDePais): number {
+  return Math.min(3, estado.paises[desde].ejercitos);
+}
+
+function moverAlConquistado(estado: EstadoDePartida, { cantidad }: { cantidad: number }): ResultadoDeAccion {
+  if (estado.conquistaPendiente === null) {
+    return { ok: false, error: "No hay un país recién conquistado al que mover ejércitos." };
+  }
+  const { desde, hacia } = estado.conquistaPendiente;
+  const maximo = maximoAMover(estado, desde);
+  if (!Number.isInteger(cantidad) || cantidad < 1 || cantidad > maximo) {
+    return { ok: false, error: `${jugadorEnTurno(estado).nombre} ${cuantosPuedeMover(maximo, desde, hacia)}` };
+  }
+  const origen = estado.paises[desde];
+  const destino = estado.paises[hacia];
+  // El primer ejército ya pasó al conquistar.
+  const pasan = cantidad - 1;
+  return {
+    ok: true,
+    estado: {
+      ...estado,
+      paises: {
+        ...estado.paises,
+        [desde]: { ...origen, ejercitos: origen.ejercitos - pasan },
+        [hacia]: { ...destino, ejercitos: destino.ejercitos + pasan },
+      },
+      conquistaPendiente: null,
+    },
+  };
+}
+
+function cuantosPuedeMover(maximo: number, desde: NombreDePais, hacia: NombreDePais): string {
+  if (maximo === 1) return `solo puede mover 1 ejército a ${hacia}, porque en ${desde} tiene que quedar al menos 1.`;
+  const porque = maximo < 3 ? `, porque en ${desde} tiene que quedar al menos 1` : "";
+  return `puede mover a ${hacia} entre 1 y ${maximo} ejércitos${porque}.`;
 }
 
 function deMayorAMenor(dados: readonly number[]): number[] {

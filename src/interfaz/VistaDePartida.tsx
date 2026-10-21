@@ -23,6 +23,10 @@ export function VistaDePartida({ partida, alCambiar }: { partida: Partida; alCam
   const porIncorporar = extras.reduce((total, [, extra]) => total + extra, generales);
   const ejercitosDeOrigen = paises.find((pais) => pais.nombre === origen)?.ejercitos;
   const tirada = partida.ultimaTirada();
+  const conquista = partida.conquistaPendiente();
+  const ganador = partida.ganador();
+  const destruidos = partida.destruidos();
+  const estaDestruido = (color: Color) => destruidos.some((jugador) => jugador.color === color);
 
   const aplicar = (accion: Accion) => {
     const resultado = partida.aplicar(accion);
@@ -36,6 +40,7 @@ export function VistaDePartida({ partida, alCambiar }: { partida: Partida; alCam
   };
 
   const alElegirPais = (pais: NombreDePais) => {
+    if (ganador) return;
     if (ronda.tipo === "incorporacion") {
       aplicar({ tipo: "incorporar", pais, cantidad: 1 });
       return;
@@ -52,8 +57,9 @@ export function VistaDePartida({ partida, alCambiar }: { partida: Partida; alCam
     }
   };
 
-  const indicacion =
-    ronda.tipo === "incorporacion"
+  const indicacion = conquista
+    ? `Conquistaste ${conquista.hacia}: elegí cuántos ejércitos pasan desde ${conquista.desde}.`
+    : ronda.tipo === "incorporacion"
       ? porIncorporar > 0
         ? `Elegí un país tuyo para poner 1 ejército (te quedan ${porIncorporar}).`
         : "Ya pusiste todos tus ejércitos: pasá el turno."
@@ -68,10 +74,17 @@ export function VistaDePartida({ partida, alCambiar }: { partida: Partida; alCam
           Ronda {ronda.inicial ? "inicial" : `de ${NOMBRE_DEL_TIPO[ronda.tipo]}`} {ronda.numero}
         </h2>
         <p>Tipo de ronda: {NOMBRE_DEL_TIPO[ronda.tipo]}</p>
-        <p className="en-turno">
-          <MuestraDeColor color={enTurno.color} />
-          Turno de <strong>{enTurno.nombre}</strong> ({enTurno.color})
-        </p>
+        {ganador ? (
+          <p className="en-turno">
+            <MuestraDeColor color={ganador.color} />
+            Partida terminada: ganó <strong>{ganador.nombre}</strong> ({ganador.color})
+          </p>
+        ) : (
+          <p className="en-turno">
+            <MuestraDeColor color={enTurno.color} />
+            Turno de <strong>{enTurno.nombre}</strong> ({enTurno.color})
+          </p>
+        )}
         <p>
           Ejércitos por poner: <strong>{porIncorporar}</strong>
         </p>
@@ -90,9 +103,12 @@ export function VistaDePartida({ partida, alCambiar }: { partida: Partida; alCam
         <h2>Orden de juego</h2>
         <ol className="orden">
           {jugadores.map((jugador) => (
-            <li key={jugador.color}>
+            <li key={jugador.color} className={estaDestruido(jugador.color) ? "destruido" : undefined}>
               <MuestraDeColor color={jugador.color} />
-              {jugador.nombre} ({jugador.color})
+              <span className="nombre-del-jugador">
+                {jugador.nombre} ({jugador.color})
+              </span>
+              {estaDestruido(jugador.color) && <span>destruido</span>}
             </li>
           ))}
         </ol>
@@ -101,24 +117,56 @@ export function VistaDePartida({ partida, alCambiar }: { partida: Partida; alCam
         <h2>Mapa</h2>
         {/* Queda pegada arriba mientras se juega en el mapa, para que la tirada y los errores estén a la vista. */}
         <div className="barra-del-mapa">
-          <div className="barra-del-mapa-fila">
-            <p className="en-turno">
-              <MuestraDeColor color={enTurno.color} />
+          {ganador ? (
+            <p className="ganador" role="status">
+              <MuestraDeColor color={ganador.color} />
               <span>
-                <strong>{enTurno.nombre}</strong>: {indicacion}
+                ¡Ganó <strong>{ganador.nombre}</strong>! La partida terminó.
               </span>
             </p>
-            <button type="button" className="principal" onClick={() => aplicar({ tipo: "pasarTurno" })}>
-              Pasar el turno
-            </button>
-          </div>
-          {tirada && <ResultadoDeLaTirada tirada={tirada} nombreDe={nombreDe} />}
+          ) : (
+            <div className="barra-del-mapa-fila">
+              <p className="en-turno">
+                <MuestraDeColor color={enTurno.color} />
+                <span>
+                  <strong>{enTurno.nombre}</strong>: {indicacion}
+                </span>
+              </p>
+              {conquista ? (
+                <span className="mover-al-conquistado" role="group" aria-label={`Ejércitos que pasan a ${conquista.hacia}`}>
+                  {[1, 2, 3].map((cantidad) => (
+                    <button
+                      key={cantidad}
+                      type="button"
+                      className="principal"
+                      disabled={cantidad > conquista.maximo}
+                      onClick={() => aplicar({ tipo: "moverAlConquistado", cantidad })}
+                    >
+                      Pasar {cantidad}
+                    </button>
+                  ))}
+                </span>
+              ) : (
+                <button type="button" className="principal" onClick={() => aplicar({ tipo: "pasarTurno" })}>
+                  Pasar el turno
+                </button>
+              )}
+            </div>
+          )}
+          {tirada && (
+            <ResultadoDeLaTirada
+              tirada={tirada}
+              nombreDe={nombreDe}
+              conquistado={paises.find((pais) => pais.nombre === tirada.defensor.pais)!.ocupante === tirada.atacante.color}
+              destruido={estaDestruido(tirada.defensor.color)}
+            />
+          )}
           {error && <p role="alert">{error}</p>}
         </div>
         <MapaEsquematico
           partida={partida}
           nombreDe={nombreDe}
-          seleccionado={ronda.tipo === "ataque" ? origen : null}
+          seleccionado={ronda.tipo === "ataque" && !ganador ? origen : null}
           alElegirPais={alElegirPais}
         />
       </section>
@@ -126,12 +174,33 @@ export function VistaDePartida({ partida, alCambiar }: { partida: Partida; alCam
   );
 }
 
-function ResultadoDeLaTirada({ tirada, nombreDe }: { tirada: Tirada; nombreDe: (color: Color) => string }) {
+function ResultadoDeLaTirada({
+  tirada,
+  nombreDe,
+  conquistado,
+  destruido,
+}: {
+  tirada: Tirada;
+  nombreDe: (color: Color) => string;
+  /** Si con esta tirada el atacante conquistó el país atacado. */
+  conquistado: boolean;
+  /** Si el defensor quedó sin países. */
+  destruido: boolean;
+}) {
+  const { atacante, defensor } = tirada;
   return (
-    <div className="tirada" aria-label="Última tirada">
-      <LadoDeTirada titulo="Ataca" lado={tirada.atacante} nombreDe={nombreDe} />
-      <LadoDeTirada titulo="Defiende" lado={tirada.defensor} nombreDe={nombreDe} />
-    </div>
+    <>
+      <div className="tirada" aria-label="Última tirada">
+        <LadoDeTirada titulo="Ataca" lado={atacante} nombreDe={nombreDe} />
+        <LadoDeTirada titulo="Defiende" lado={defensor} nombreDe={nombreDe} />
+      </div>
+      {conquistado && (
+        <p className="conquista">
+          {nombreDe(atacante.color)} conquistó {defensor.pais}.
+          {destruido && ` ${nombreDe(defensor.color)} perdió su último país y quedó destruido.`}
+        </p>
+      )}
+    </>
   );
 }
 

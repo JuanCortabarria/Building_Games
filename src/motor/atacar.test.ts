@@ -206,19 +206,6 @@ describe("los ataques de un turno", () => {
   });
 });
 
-describe("un país que se queda sin ejércitos", () => {
-  // Elegir cuántos ejércitos mover al país conquistado es del ticket 07. Hasta entonces, el motor mueve 1.
-  it("pasa a ser del atacante, que mueve a él 1 ejército desde el país de origen", () => {
-    const partida = turnoDeAna({ ejercitos: { Argentina: 4, Chile: 2 }, dados: [6, 5, 1, 4, 3] });
-
-    const despues = partidaDe(partida.aplicar({ tipo: "atacar", desde: "Argentina", hacia: "Chile" }));
-
-    expect(despues.ultimaTirada()?.defensor).toEqual({ pais: "Chile", color: "rojo", dados: [4, 3], perdidos: 2 });
-    expect(despues.paises().find((pais) => pais.nombre === "Chile")).toMatchObject({ ocupante: "azul", ejercitos: 1 });
-    expect(ejercitosEn(despues, "Argentina")).toBe(3);
-  });
-});
-
 describe("los dados de una partida con semilla", () => {
   /** El turno de Ana con muchos ejércitos de los dos lados, jugado con la fuente de azar de la aplicación. */
   function conSemilla(semilla: number): Partida {
