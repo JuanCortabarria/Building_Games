@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fuenteConSemilla } from "../motor/azar";
-import { fuenteFija } from "../motor/azar";
+import { fuenteConSemilla, fuenteFija } from "../motor/azar";
 import { partidaDe } from "../motor/ayudas-de-test";
 import type { NombreDePais } from "../motor/mapa";
 import {
@@ -15,13 +14,14 @@ import { elegirAccion } from "./rivales";
 
 /** Una partida nueva con tantos jugadores como se pidan, todos de la computadora. */
 function partidaNueva(cantidad: number, semilla: number): Partida {
-  const jugadores = COLORES.slice(0, cantidad).map((color, i) => ({ nombre: `Compu ${i + 1}`, color }));
+  const jugadores = COLORES.slice(0, cantidad).map((color, i) => ({ nombre: `Computadora ${i + 1}`, color }));
   return partidaDe(crearPartida(jugadores, fuenteConSemilla(semilla)));
 }
 
 /**
  * Una partida a mitad de camino entre Ana (azul), en turno, y Beto (rojo), que ocupa lo que no es de Ana.
  * Por defecto es la ronda de ataque 1; `ejercitos` da los de los países que no tienen 1.
+ * A diferencia de `partidaEnRondaDeAtaque` del motor, también arma rondas de incorporación.
  */
 function turnoDeAna({
   ana,
@@ -189,10 +189,11 @@ describe("elegirAccion", () => {
       expect(elegirAccion(partida)).toEqual({ tipo: "pasarTurno" });
     });
 
-    it("no ataca desde un país con 1 ejército, aunque el limítrofe también tenga 1", () => {
-      const partida = turnoDeAna({ ana: ["Argentina", "Japón"], ejercitos: { Japón: 1 } });
+    it("no ataca desde un país con 1 ejército, aunque el limítrofe también tenga 1: ataca desde el que puede", () => {
+      // Argentina tiene 1 frente a países de Beto con 1; Japón tiene 4 frente a China y Kamchatka, con 1.
+      const partida = turnoDeAna({ ana: ["Argentina", "Japón"], ejercitos: { Japón: 4 } });
 
-      expect(elegirAccion(partida)).toEqual({ tipo: "pasarTurno" });
+      expect(elegirAccion(partida)).toMatchObject({ tipo: "atacar", desde: "Japón" });
     });
 
     it("con una conquista pendiente, mueve todo lo que puede si el conquistado sigue en la frontera", () => {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { Accion, Color, Partida } from "../motor/partida";
 import { elegirAccion } from "../rivales/rivales";
 import { ESTILO_DE_COLOR } from "./colores";
@@ -8,7 +8,7 @@ const RITMOS = { normal: 500, rapido: 100 } as const;
 type Ritmo = keyof typeof RITMOS;
 
 /** Lo último que hizo la computadora, contado para mostrarlo. */
-interface Jugada {
+interface AccionContada {
   color: Color;
   nombre: string;
   texto: string;
@@ -17,7 +17,7 @@ interface Jugada {
 export interface TurnoDeLaComputadora {
   /** Si el turno en curso es de un jugador de la computadora y la partida sigue. */
   juega: boolean;
-  ultima: Jugada | null;
+  ultima: AccionContada | null;
   error: string | null;
   ritmo: Ritmo;
   cambiarRitmo: (ritmo: Ritmo) => void;
@@ -43,12 +43,19 @@ export function useTurnoDeLaComputadora({
 }): TurnoDeLaComputadora {
   const [ritmo, cambiarRitmo] = useState<Ritmo>("normal");
   const [pausado, cambiarPausa] = useState(false);
-  const [ultima, setUltima] = useState<Jugada | null>(null);
+  const [ultima, setUltima] = useState<AccionContada | null>(null);
   const [error, setError] = useState<string | null>(null);
   const juega = partida !== null && partida.ganador() === null && computadoras.includes(partida.jugadorEnTurno().color);
   // La función de la pantalla cambia en cada dibujo; el temporizador usa siempre la última.
   const alCambiarActual = useRef(alCambiar);
   alCambiarActual.current = alCambiar;
+
+  // Una partida nueva (con su propia lista de computadoras) no hereda la pausa ni lo último de la anterior.
+  useEffect(() => {
+    cambiarPausa(false);
+    setUltima(null);
+    setError(null);
+  }, [computadoras]);
 
   useEffect(() => {
     if (!juega || !activo || pausado || partida === null) return;
@@ -103,18 +110,18 @@ function contar(accion: Accion, antes: Partida, despues: Partida): string {
 /** Un aviso fijo abajo de la pantalla con lo que está haciendo la computadora, el ritmo y la pausa. */
 export function AvisoDeLaComputadora({ turno, partida }: { turno: TurnoDeLaComputadora; partida: Partida }) {
   const { juega, ultima, error, ritmo, cambiarRitmo, pausado, cambiarPausa } = turno;
-  if (!juega && error === null) return null;
+  if (!juega) return null;
   const enTurno = partida.jugadorEnTurno();
   // Lo último solo se muestra si lo hizo el que está jugando ahora, para no mezclar turnos.
-  const jugada = ultima?.color === enTurno.color ? ultima : null;
+  const suUltima = ultima?.color === enTurno.color ? ultima : null;
   return (
     <aside className="aviso-de-la-computadora" aria-live="polite">
       <p>
         <span className="muestra-de-color" style={{ background: ESTILO_DE_COLOR[enTurno.color].fondo }} aria-hidden />{" "}
         Juega la computadora: <strong>{enTurno.nombre}</strong>{" "}
-        {pausado ? "(en pausa)" : jugada ? jugada.texto : "está pensando…"}
+        {pausado ? "(en pausa)" : suUltima ? suUltima.texto : "está pensando…"}
       </p>
-      {error && <p role="alert">{error}</p>}
+      {error && <p role="alert">{error} Con Pausar y Seguir lo vuelve a intentar.</p>}
       <div className="controles-de-la-computadora">
         <button type="button" onClick={() => cambiarPausa(!pausado)}>
           {pausado ? "Seguir" : "Pausar"}
@@ -130,7 +137,8 @@ export function AvisoDeLaComputadora({ turno, partida }: { turno: TurnoDeLaCompu
 /** Mientras `bloqueado`, lo envuelto se ve pero no se puede usar, ni con el mouse ni con el teclado. */
 export function Bloqueable({ bloqueado, children }: { bloqueado: boolean; children: ReactNode }) {
   const envoltorio = useRef<HTMLDivElement>(null);
-  useEffect(() => {
+  // Antes de que se pinte, para que no haya un instante en que se pueda tocar.
+  useLayoutEffect(() => {
     if (envoltorio.current) envoltorio.current.inert = bloqueado;
   }, [bloqueado]);
   return (

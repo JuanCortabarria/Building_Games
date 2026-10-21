@@ -1,9 +1,12 @@
 import { Component, useState, type ReactNode } from "react";
-import type { Partida } from "../motor/partida";
+import type { Color, Partida } from "../motor/partida";
 import { CrearPartida } from "./CrearPartida";
 import { cargarPartida, guardarPartida, type PartidaEnJuego } from "./guardado";
 import { AvisoDeLaComputadora, Bloqueable, useTurnoDeLaComputadora } from "./TurnoDeLaComputadora";
 import { VistaDePartida } from "./VistaDePartida";
+
+/** Sin partida no hay jugadores de la computadora. Es una sola lista, para que no cambie en cada dibujo. */
+const NINGUNA_COMPUTADORA: readonly Color[] = [];
 
 export function App() {
   const [enJuego, setEnJuego] = useState<PartidaEnJuego | null>(cargarPartida);
@@ -19,12 +22,13 @@ export function App() {
     setAviso(null);
   };
 
-  const cambiar = (nueva: Partida) => empezar({ partida: nueva, computadoras: enJuego?.computadoras ?? [] });
+  const computadoras = enJuego?.computadoras ?? NINGUNA_COMPUTADORA;
+  const cambiar = (nueva: Partida) => empezar({ partida: nueva, computadoras });
 
   // Mientras se crea otra partida, la computadora no sigue jugando la guardada.
   const turnoDeLaComputadora = useTurnoDeLaComputadora({
     partida,
-    computadoras: enJuego?.computadoras ?? [],
+    computadoras,
     activo: !creandoOtra,
     alCambiar: cambiar,
   });

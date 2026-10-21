@@ -7,19 +7,19 @@ import type { Accion, Color, EjercitosPorIncorporar, PaisEnJuego, Partida } from
  */
 export function elegirAccion(partida: Partida): Accion | null {
   if (partida.ganador() !== null) return null;
-  const tablero = leerTablero(partida);
+  const panorama = leerPanorama(partida);
   const conquista = partida.conquistaPendiente();
-  if (conquista) return { tipo: "moverAlConquistado", cantidad: cuantosPasan(tablero, conquista) };
+  if (conquista) return { tipo: "moverAlConquistado", cantidad: cuantosPasan(panorama, conquista) };
   if (partida.ronda().tipo === "incorporacion") {
-    return incorporar(tablero, partida.ejercitosPorIncorporar()) ?? { tipo: "pasarTurno" };
+    return incorporar(panorama, partida.ejercitosPorIncorporar()) ?? { tipo: "pasarTurno" };
   }
   // Después de reagrupar ya no se ataca, así que primero ataca y después reagrupa.
-  const ataque = partida.reagrupoEnEsteTurno() ? null : mejorAtaque(tablero);
-  return ataque ?? reagrupe(tablero, partida) ?? { tipo: "pasarTurno" };
+  const ataque = partida.reagrupoEnEsteTurno() ? null : mejorAtaque(panorama);
+  return ataque ?? reagrupe(panorama, partida) ?? { tipo: "pasarTurno" };
 }
 
-/** Lo que la computadora mira del tablero, leído una vez por decisión. */
-interface Tablero {
+/** Lo que la computadora mira de la partida, leído una vez por decisión. */
+interface Panorama {
   color: Color;
   paises: Map<NombreDePais, PaisEnJuego>;
   limitrofes: Map<NombreDePais, readonly NombreDePais[]>;
@@ -29,7 +29,7 @@ interface Tablero {
   completos: Map<NombreDeContinente, Color>;
 }
 
-function leerTablero(partida: Partida): Tablero {
+function leerPanorama(partida: Partida): Panorama {
   const { color } = partida.jugadorEnTurno();
   const paises = new Map(partida.paises().map((pais) => [pais.nombre, pais]));
   const limitrofes = new Map([...paises.keys()].map((pais) => [pais, partida.limitrofesDe(pais)]));
@@ -53,34 +53,39 @@ function leerTablero(partida: Partida): Tablero {
   return { color, paises, limitrofes, objetivo, completos };
 }
 
-function pais(tablero: Tablero, nombre: NombreDePais): PaisEnJuego {
-  return tablero.paises.get(nombre)!;
+function pais(panorama: Panorama, nombre: NombreDePais): PaisEnJuego {
+  return panorama.paises.get(nombre)!;
 }
 
-function enemigosDe(tablero: Tablero, nombre: NombreDePais): PaisEnJuego[] {
-  return tablero.limitrofes
+function enemigosDe(panorama: Panorama, nombre: NombreDePais): PaisEnJuego[] {
+  return panorama.limitrofes
     .get(nombre)!
-    .map((limitrofe) => pais(tablero, limitrofe))
-    .filter((limitrofe) => limitrofe.ocupante !== tablero.color);
+    .map((limitrofe) => pais(panorama, limitrofe))
+    .filter((limitrofe) => limitrofe.ocupante !== panorama.color);
 }
 
-function propios(tablero: Tablero): PaisEnJuego[] {
-  return [...tablero.paises.values()].filter((enJuego) => enJuego.ocupante === tablero.color);
+/** Un país de frontera tiene al menos un enemigo limítrofe; los demás son interiores. */
+function esFrontera(panorama: Panorama, nombre: NombreDePais): boolean {
+  return enemigosDe(panorama, nombre).length > 0;
+}
+
+function propios(panorama: Panorama): PaisEnJuego[] {
+  return [...panorama.paises.values()].filter((enJuego) => enJuego.ocupante === panorama.color);
 }
 
 /**
  * Pone ejércitos donde más hacen falta. Los extra de un continente van primero, a ese continente.
  * Reparte de a uno, cada vez en el país más urgente, y aplica de una vez lo que le tocó al que más recibió.
  */
-function incorporar(tablero: Tablero, { generales, porContinente }: EjercitosPorIncorporar): Accion | null {
+function incorporar(panorama: Panorama, { generales, porContinente }: EjercitosPorIncorporar): Accion | null {
   const extra = (Object.entries(porContinente) as [NombreDeContinente, number][]).find(([, cantidad]) => cantidad > 0);
   const [candidatos, cantidad] = extra
-    ? [propios(tablero).filter((enJuego) => enJuego.continente === extra[0]), extra[1]]
-    : [propios(tablero), generales];
+    ? [propios(panorama).filter((enJuego) => enJuego.continente === extra[0]), extra[1]]
+    : [propios(panorama), generales];
   if (cantidad === 0) return null;
   const agregados = new Map<NombreDePais, number>(candidatos.map((enJuego) => [enJuego.nombre, 0]));
   for (let i = 0; i < cantidad; i++) {
-    const elegido = maximo(candidatos, (enJuego) => urgencia(tablero, enJuego, agregados.get(enJuego.nombre)!));
+    const elegido = maximo(candidatos, (enJuego) => urgencia(panorama, enJuego, agregados.get(enJuego.nombre)!));
     agregados.set(elegido.nombre, agregados.get(elegido.nombre)! + 1);
   }
   const [masRecibio, recibe] = maximo([...agregados], ([, recibidos]) => recibidos);
@@ -92,58 +97,59 @@ function incorporar(tablero: Tablero, { generales, porContinente }: EjercitosPor
  * si protege un continente completo o si desde él se avanza sobre el continente que se quiere completar.
  * Un país sin enemigos limítrofes no lo necesita.
  */
-function urgencia(tablero: Tablero, enJuego: PaisEnJuego, agregados: number): number {
-  const enemigos = enemigosDe(tablero, enJuego.nombre);
+function urgencia(panorama: Panorama, enJuego: PaisEnJuego, agregados: number): number {
+  const enemigos = enemigosDe(panorama, enJuego.nombre);
   if (enemigos.length === 0) return -1000 - agregados;
   const amenaza = Math.max(...enemigos.map((enemigo) => enemigo.ejercitos));
   let urgencia = amenaza - (enJuego.ejercitos + agregados);
-  if (tablero.completos.get(enJuego.continente) === tablero.color) urgencia += 3;
-  if (enemigos.some((enemigo) => enemigo.continente === tablero.objetivo)) urgencia += 3;
+  if (panorama.completos.get(enJuego.continente) === panorama.color) urgencia += 3;
+  if (enemigos.some((enemigo) => enemigo.continente === panorama.objetivo)) urgencia += 3;
   return urgencia;
 }
 
 /** El ataque más prometedor entre los que tienen ventaja, o nada si no hay ninguno que convenga. */
-function mejorAtaque(tablero: Tablero): Accion | null {
-  const ataques = propios(tablero).flatMap((desde) =>
-    enemigosDe(tablero, desde.nombre)
+function mejorAtaque(panorama: Panorama): Accion | null {
+  const ataques = propios(panorama).flatMap((desde) =>
+    enemigosDe(panorama, desde.nombre)
       .filter((hacia) => desde.ejercitos - 1 > hacia.ejercitos)
       .map((hacia) => ({ desde, hacia })),
   );
   if (ataques.length === 0) return null;
   const { desde, hacia } = maximo(ataques, ({ desde, hacia }) => {
     let puntaje = desde.ejercitos - 1 - hacia.ejercitos;
-    if (hacia.continente === tablero.objetivo) puntaje += 2;
+    if (hacia.continente === panorama.objetivo) puntaje += 2;
     // Romperle un continente a otro le quita los extra.
-    if (tablero.completos.has(hacia.continente)) puntaje += 2;
+    if (panorama.completos.has(hacia.continente)) puntaje += 2;
     return puntaje;
   });
   return { tipo: "atacar", desde: desde.nombre, hacia: hacia.nombre };
 }
 
 /**
- * Lleva los ejércitos de un país sin enemigos limítrofes a la frontera más urgente a la que se llegue.
- * Solo mueve desde países interiores hacia países de frontera, así que en algún momento no queda nada que mover.
+ * Reagrupa los ejércitos del país interior que más tiene hacia la frontera más urgente a la que se llegue.
+ * Solo reagrupa desde países interiores hacia países de frontera, así que en algún momento no queda nada por reagrupar.
  */
-function reagrupe(tablero: Tablero, partida: Partida): Accion | null {
-  for (const desde of propios(tablero)) {
-    if (desde.ejercitos < 2 || enemigosDe(tablero, desde.nombre).length > 0) continue;
-    const frontera = partida
-      .destinosDeReagrupe(desde.nombre)
-      .map((nombre) => pais(tablero, nombre))
-      .filter((destino) => enemigosDe(tablero, destino.nombre).length > 0);
-    if (frontera.length === 0) continue;
-    const hacia = maximo(frontera, (destino) => urgencia(tablero, destino, 0));
-    return { tipo: "reagrupar", desde: desde.nombre, hacia: hacia.nombre, cantidad: desde.ejercitos - 1 };
-  }
-  return null;
+function reagrupe(panorama: Panorama, partida: Partida): Accion | null {
+  const reagrupes = propios(panorama)
+    .filter((desde) => desde.ejercitos > 1 && !esFrontera(panorama, desde.nombre))
+    .flatMap((desde) => {
+      const frontera = partida
+        .destinosDeReagrupe(desde.nombre)
+        .map((nombre) => pais(panorama, nombre))
+        .filter((destino) => esFrontera(panorama, destino.nombre));
+      return frontera.length === 0 ? [] : [{ desde, hacia: maximo(frontera, (destino) => urgencia(panorama, destino, 0)) }];
+    });
+  if (reagrupes.length === 0) return null;
+  const { desde, hacia } = maximo(reagrupes, ({ desde }) => desde.ejercitos);
+  return { tipo: "reagrupar", desde: desde.nombre, hacia: hacia.nombre, cantidad: desde.ejercitos - 1 };
 }
 
 /**
  * Cuántos ejércitos pasan al país recién conquistado: todos los que se pueda, salvo que el conquistado
  * no tenga enemigos limítrofes, porque ahí no sirven.
  */
-function cuantosPasan(tablero: Tablero, { hacia, maximo }: { hacia: NombreDePais; maximo: number }): number {
-  return enemigosDe(tablero, hacia).length === 0 ? 1 : maximo;
+function cuantosPasan(panorama: Panorama, conquista: { hacia: NombreDePais; maximo: number }): number {
+  return esFrontera(panorama, conquista.hacia) ? conquista.maximo : 1;
 }
 
 /** El elemento de mayor valor; ante un empate, el primero. La lista no puede estar vacía. */
