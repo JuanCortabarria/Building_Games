@@ -8,7 +8,7 @@ const CLAVE = "teg:partida";
  * La versión de la forma de lo guardado. Si cambia la forma de `EstadoDePartida`,
  * hay que subirla: lo guardado con otra versión no se restaura.
  */
-const VERSION = 4;
+const VERSION = 5;
 
 interface PartidaGuardada {
   version: number;

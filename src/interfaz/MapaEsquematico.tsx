@@ -25,24 +25,52 @@ const COLOR_DEL_CONTINENTE: Record<NombreDeContinente, { mancha: string; nombre:
 
 type Limite = readonly [PaisEnJuego, PaisEnJuego];
 
+type Marca = "seleccionado" | "atacable" | "destino" | "destino-posible";
+
+const DETALLE_DE_LA_MARCA: Record<Marca, string> = {
+  seleccionado: ", elegido como origen",
+  atacable: ", se puede atacar",
+  destino: ", elegido como destino",
+  "destino-posible": ", se puede reagrupar hacia él",
+};
+
 export function MapaEsquematico({
   partida,
   nombreDe,
   seleccionado = null,
+  modo = "atacar",
+  destino = null,
   alElegirPais,
 }: {
   partida: Partida;
   nombreDe: (color: Color) => string;
-  /** El país elegido para atacar desde él; se marcan también sus limítrofes de otros jugadores. */
+  /**
+   * El país elegido como origen. Al atacar se marcan también sus limítrofes de otros jugadores;
+   * al reagrupar, los países propios a los que se puede reagrupar desde él.
+   */
   seleccionado?: NombreDePais | null;
+  modo?: "atacar" | "reagrupar";
+  /** Al reagrupar, el país elegido como destino. */
+  destino?: NombreDePais | null;
   alElegirPais: (pais: NombreDePais) => void;
 }) {
   const paises = partida.paises();
   const porNombre = new Map(paises.map((pais) => [pais.nombre, pais]));
   const ocupanteDelSeleccionado = seleccionado && porNombre.get(seleccionado)!.ocupante;
-  const atacables = seleccionado
+  const atacables = seleccionado && modo === "atacar"
     ? partida.limitrofesDe(seleccionado).filter((pais) => porNombre.get(pais)!.ocupante !== ocupanteDelSeleccionado)
     : [];
+  const destinosPosibles = seleccionado && modo === "reagrupar" ? partida.destinosDeReagrupe(seleccionado) : [];
+  const marcaDe = (pais: NombreDePais): Marca | null =>
+    pais === seleccionado
+      ? "seleccionado"
+      : pais === destino
+        ? "destino"
+        : atacables.includes(pais)
+          ? "atacable"
+          : destinosPosibles.includes(pais)
+            ? "destino-posible"
+            : null;
   // Cada par limítrofe una sola vez: se anota desde el país cuyo nombre se ordena primero.
   const limites: Limite[] = paises.flatMap((pais) =>
     partida
@@ -80,7 +108,7 @@ export function MapaEsquematico({
         <RecuadroDePais
           key={pais.nombre}
           pais={pais}
-          marca={pais.nombre === seleccionado ? "seleccionado" : atacables.includes(pais.nombre) ? "atacable" : null}
+          marca={marcaDe(pais.nombre)}
           nombreDe={nombreDe}
           alElegir={() => alElegirPais(pais.nombre)}
         />
@@ -158,13 +186,13 @@ function RecuadroDePais({
   alElegir,
 }: {
   pais: PaisEnJuego;
-  marca: "seleccionado" | "atacable" | null;
+  marca: Marca | null;
   nombreDe: (color: Color) => string;
   alElegir: () => void;
 }) {
   const { x, y } = POSICION_DEL_PAIS[pais.nombre];
   const estilo = ESTILO_DE_COLOR[pais.ocupante];
-  const detalle = marca === "seleccionado" ? ", elegido para atacar" : marca === "atacable" ? ", se puede atacar" : "";
+  const detalle = marca ? DETALLE_DE_LA_MARCA[marca] : "";
   const descripcion = `${pais.nombre}: ${nombreDe(pais.ocupante)} (${pais.ocupante}), ${pais.ejercitos} ejército(s)${detalle}`;
   const alApretarTecla = (evento: KeyboardEvent) => {
     if (evento.key === "Enter" || evento.key === " ") {

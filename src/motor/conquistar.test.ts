@@ -135,6 +135,11 @@ describe("hasta mover los ejércitos al país conquistado", () => {
     expect(anaConquistaChile().aplicar({ tipo: "incorporar", pais: "Argentina", cantidad: 1 })).toEqual(ERROR);
   });
 
+  it("no se puede reagrupar", () => {
+    // Argentina y Brasil son de Ana y limítrofes: sin la conquista pendiente, este reagrupe se podría.
+    expect(anaConquistaChile().aplicar({ tipo: "reagrupar", desde: "Argentina", hacia: "Brasil", cantidad: 1 })).toEqual(ERROR);
+  });
+
   it("después de moverlos se puede seguir atacando, también desde el país conquistado", () => {
     // Chile, con 3 ejércitos, ataca a Perú, que tiene 1: 2, 1 contra 6.
     let partida = partidaDe(anaConquistaChile(5, [2, 1, 6]).aplicar({ tipo: "moverAlConquistado", cantidad: 3 }));

@@ -29,6 +29,8 @@ export interface EstadoDePartida {
   azar: EstadoDeAzar;
   /** La última tirada del turno en curso, o nada si en este turno todavía no se atacó. */
   ultimaTirada: Tirada | null;
+  /** Si el jugador en turno ya reagrupó: desde entonces, en este turno no puede atacar. */
+  reagrupoEnEsteTurno: boolean;
   /**
    * El país que el jugador en turno acaba de conquistar y desde dónde lo atacó, mientras no elija
    * cuántos ejércitos mover a él. Hasta entonces no puede hacer otra acción.
@@ -85,6 +87,7 @@ export type Accion =
   | { tipo: "atacar"; desde: NombreDePais; hacia: NombreDePais }
   /** Cuántos ejércitos pasan, en total, del país de origen al que se acaba de conquistar. */
   | { tipo: "moverAlConquistado"; cantidad: number }
+  | { tipo: "reagrupar"; desde: NombreDePais; hacia: NombreDePais; cantidad: number }
   | { tipo: "pasarTurno" };
 
 export interface ConquistaPendiente {
@@ -114,6 +117,10 @@ export interface Partida {
   /** El jugador que ganó, o nada si la partida sigue. */
   ganador(): DatosDeJugador | null;
   /** Aplica una acción y devuelve la partida que queda, o un error que explica qué regla la impide. */
+  /** Si el jugador en turno ya reagrupó en este turno, y por eso ya no puede atacar. */
+  reagrupoEnEsteTurno(): boolean;
+  /** Los países a los que se puede reagrupar desde uno: los de su ocupante a los que se llega pasando solo por países suyos. */
+  destinosDeReagrupe(desde: NombreDePais): readonly NombreDePais[];
   aplicar(accion: Accion): ResultadoDePartida;
 }
 
@@ -157,6 +164,7 @@ export function crearPartida(
     ejercitosPorIncorporar: NINGUN_EJERCITO,
     azar: azar.estado(),
     ultimaTirada: null,
+    reagrupoEnEsteTurno: false,
     conquistaPendiente: null,
     ganador: null,
   });
@@ -211,6 +219,8 @@ function partidaDesde(estado: EstadoDePartida, azar: FuenteDeAzar): Partida {
       const ganador = estado.jugadores.find((jugador) => jugador.color === estado.ganador);
       return ganador ? { ...ganador } : null;
     },
+    reagrupoEnEsteTurno: () => estado.reagrupoEnEsteTurno,
+    destinosDeReagrupe: (desde) => [...alcanzablesPorPaisesPropios(estado, desde)].filter((pais) => pais !== desde),
     aplicar: (accion) => {
       const resultado = aplicar(estado, accion, azar);
       return resultado.ok ? { ok: true, partida: partidaDesde(resultado.estado, azar) } : resultado;
@@ -238,6 +248,7 @@ function aplicar(estado: EstadoDePartida, accion: Accion, azar: FuenteDeAzar): R
   }
   if (accion.tipo === "incorporar") return incorporar(estado, accion);
   if (accion.tipo === "atacar") return atacar(estado, accion, azar.reanudar(estado.azar));
+  if (accion.tipo === "reagrupar") return reagrupar(estado, accion);
   return pasarTurno(estado);
 }
 
@@ -311,6 +322,9 @@ function atacar(
   const enTurno = jugadorEnTurno(estado);
   if (estado.ronda.tipo !== "ataque") {
     return { ok: false, error: "Solo se ataca en la ronda de ataque, y esta es una ronda de incorporación." };
+  }
+  if (estado.reagrupoEnEsteTurno) {
+    return { ok: false, error: `${enTurno.nombre} ya reagrupó en este turno, y después de reagrupar no se puede atacar.` };
   }
   const fueraDelMapa = [desde, hacia].find((pais) => !Object.hasOwn(estado.paises, pais));
   if (fueraDelMapa) return { ok: false, error: `${fueraDelMapa} no es un país del mapa.` };
@@ -414,6 +428,82 @@ function cuantosPuedeMover(maximo: number, desde: NombreDePais, hacia: NombreDeP
   return `puede mover a ${hacia} entre 1 y ${maximo} ejércitos${porque}.`;
 }
 
+/** Mueve ejércitos de un país propio a otro país propio. */
+function reagrupar(
+  estado: EstadoDePartida,
+  { desde, hacia, cantidad }: { desde: NombreDePais; hacia: NombreDePais; cantidad: number },
+): ResultadoDeAccion {
+  const enTurno = jugadorEnTurno(estado);
+  if (estado.ronda.tipo !== "ataque") {
+    return { ok: false, error: "Solo se reagrupa en la ronda de ataque, y esta es una ronda de incorporación." };
+  }
+  if (!Number.isInteger(cantidad) || cantidad < 1) {
+    return { ok: false, error: "Hay que mover un número entero de ejércitos, de 1 en adelante." };
+  }
+  const fueraDelMapa = [desde, hacia].find((pais) => !Object.hasOwn(estado.paises, pais));
+  if (fueraDelMapa) return { ok: false, error: `${fueraDelMapa} no es un país del mapa.` };
+  if (desde === hacia) return { ok: false, error: "Para reagrupar hay que elegir dos países distintos." };
+  const origen = estado.paises[desde];
+  const destino = estado.paises[hacia];
+  if (origen.ocupante !== enTurno.color) {
+    return {
+      ok: false,
+      error: `${enTurno.nombre} solo puede reagrupar desde un país suyo, y ${desde} lo ocupa ${nombreDe(estado, origen.ocupante)}.`,
+    };
+  }
+  if (destino.ocupante !== enTurno.color) {
+    return {
+      ok: false,
+      error: `${enTurno.nombre} solo puede reagrupar hacia un país suyo, y ${hacia} lo ocupa ${nombreDe(estado, destino.ocupante)}.`,
+    };
+  }
+  if (!alcanzablesPorPaisesPropios(estado, desde).has(hacia)) {
+    return {
+      ok: false,
+      error: `${enTurno.nombre} no puede reagrupar de ${desde} a ${hacia}, porque no se llega pasando solo por países suyos limítrofes.`,
+    };
+  }
+  if (cantidad > origen.ejercitos - 1) {
+    return { ok: false, error: cuantosSePuedenMover(desde, origen.ejercitos, cantidad) };
+  }
+  return {
+    ok: true,
+    estado: {
+      ...estado,
+      paises: {
+        ...estado.paises,
+        [desde]: { ...origen, ejercitos: origen.ejercitos - cantidad },
+        [hacia]: { ...destino, ejercitos: destino.ejercitos + cantidad },
+      },
+      reagrupoEnEsteTurno: true,
+    },
+  };
+}
+
+function cuantosSePuedenMover(desde: NombreDePais, ejercitos: number, cantidad: number): string {
+  if (ejercitos === 1) {
+    return `Desde ${desde} no se puede mover ningún ejército, porque tiene uno solo y siempre tiene que quedar uno.`;
+  }
+  const hasta = ejercitos === 2 ? "1 ejército" : `${ejercitos - 1} ejércitos`;
+  return `Desde ${desde} se pueden mover hasta ${hasta}, porque siempre tiene que quedar uno, y se quisieron mover ${cantidad}.`;
+}
+
+/** Los países a los que se llega desde uno dado pasando solo por países limítrofes de su mismo ocupante. */
+function alcanzablesPorPaisesPropios(estado: EstadoDePartida, desde: NombreDePais): Set<NombreDePais> {
+  const { ocupante } = estado.paises[desde];
+  const alcanzados = new Set<NombreDePais>([desde]);
+  const porRecorrer = [desde];
+  for (let pais = porRecorrer.pop(); pais !== undefined; pais = porRecorrer.pop()) {
+    for (const limitrofe of limitrofesDe(pais)) {
+      if (!alcanzados.has(limitrofe) && estado.paises[limitrofe].ocupante === ocupante) {
+        alcanzados.add(limitrofe);
+        porRecorrer.push(limitrofe);
+      }
+    }
+  }
+  return alcanzados;
+}
+
 function deMayorAMenor(dados: readonly number[]): number[] {
   return [...dados].sort((a, b) => b - a);
 }
@@ -436,10 +526,15 @@ function pasarTurno(estado: EstadoDePartida): ResultadoDeAccion {
 
 /**
  * Le da al jugador en turno los ejércitos que le tocan, calculados con los países que tiene ahora.
- * La tirada del turno anterior deja de estar a la vista.
+ * La tirada del turno anterior deja de estar a la vista, y el nuevo jugador todavía no reagrupó.
  */
 function empezarTurno(estado: EstadoDePartida): EstadoDePartida {
-  return { ...estado, ejercitosPorIncorporar: ejercitosDelTurno(estado), ultimaTirada: null };
+  return {
+    ...estado,
+    ejercitosPorIncorporar: ejercitosDelTurno(estado),
+    ultimaTirada: null,
+    reagrupoEnEsteTurno: false,
+  };
 }
 
 /**
