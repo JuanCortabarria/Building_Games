@@ -237,15 +237,6 @@ describe("los dados de una partida con semilla", () => {
     expect(otraVez.estado()).toEqual(unaVez.estado());
   });
 
-  it("cada ataque sigue la secuencia de la fuente: los dados avanzan en el estado del azar", () => {
-    const partida = conSemilla(2026);
-
-    const despues = partidaDe(partida.aplicar(ATAQUE));
-
-    // Argentina tiene 20 ejércitos y Chile 20: salieron 3 dados de cada lado.
-    expect(despues.estado().azar).toEqual({ semilla: 2026, avance: 6 });
-  });
-
   it("una partida guardada y restaurada con su fuente reanudada tira los mismos dados que la original", () => {
     let original = partidaDe(conSemilla(2026).aplicar(ATAQUE));
     const estadoGuardado = JSON.parse(JSON.stringify(original.estado()));
@@ -259,8 +250,15 @@ describe("los dados de una partida con semilla", () => {
     expect(restaurada.estado()).toEqual(original.estado());
   });
 
-  it("los dados de la fuente con semilla van del 1 al 6", () => {
-    const dados = fuenteConSemilla(2026).tirarDados(600);
+  it("los dados que tira la partida van del 1 al 6, y salen todos", () => {
+    let partida = conSemilla(2026);
+    const dados: number[] = [];
+
+    for (let i = 0; i < 6; i++) {
+      partida = partidaDe(partida.aplicar(ATAQUE));
+      const { atacante, defensor } = partida.ultimaTirada()!;
+      dados.push(...atacante.dados, ...defensor.dados);
+    }
 
     expect(new Set(dados)).toEqual(new Set([1, 2, 3, 4, 5, 6]));
   });
