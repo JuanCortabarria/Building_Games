@@ -4,15 +4,15 @@
 
 **Blocked by:** 04 (Rondas iniciales)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Solo se puede atacar desde un país propio con al menos 2 ejércitos, hacia un país limítrofe de otro jugador; cada caso prohibido devuelve un error que explica la regla.
-- [ ] Con 4 ejércitos atacando a 2: el atacante tira 3 dados y el defensor 2, y se comparan 2 pares.
-- [ ] Con dados atacante 6, 4, 1 y defensor 5, 4: el defensor pierde 1 ejército y el atacante pierde 1 (el empate en 4 lo gana el defensor).
-- [ ] Con dados atacante 3 y defensor 5, 2, 1: se compara un solo par y el atacante pierde 1 ejército.
-- [ ] Un jugador puede atacar varias veces en su turno, desde distintos países, y puede pasar el turno sin atacar.
-- [ ] La aplicación usa una fuente de azar con semilla, y el estado de esa fuente es parte del estado de la partida: una partida restaurada da los mismos dados que la original.
-- [ ] La pantalla muestra los dados de los dos lados y las pérdidas de cada uno en la última tirada.
+- [x] Solo se puede atacar desde un país propio con al menos 2 ejércitos, hacia un país limítrofe de otro jugador; cada caso prohibido devuelve un error que explica la regla.
+- [x] Con 4 ejércitos atacando a 2: el atacante tira 3 dados y el defensor 2, y se comparan 2 pares.
+- [x] Con dados atacante 6, 4, 1 y defensor 5, 4: el defensor pierde 1 ejército y el atacante pierde 1 (el empate en 4 lo gana el defensor).
+- [x] Con dados atacante 3 y defensor 5, 2, 1: se compara un solo par y el atacante pierde 1 ejército.
+- [x] Un jugador puede atacar varias veces en su turno, desde distintos países, y puede pasar el turno sin atacar.
+- [x] La aplicación usa una fuente de azar con semilla, y el estado de esa fuente es parte del estado de la partida: una partida restaurada da los mismos dados que la original.
+- [x] La pantalla muestra los dados de los dos lados y las pérdidas de cada uno en la última tirada.
 
 ## Comments
 
