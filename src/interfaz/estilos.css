@@ -132,3 +132,80 @@ button.principal {
   align-items: center;
   gap: 8px;
 }
+
+.pais-del-mapa.seleccionado rect {
+  stroke: #000;
+  stroke-width: 5;
+}
+
+.pais-del-mapa.atacable rect {
+  stroke: #000;
+  stroke-width: 2.5;
+  stroke-dasharray: 6 4;
+}
+
+/* El mapa con su barra entra entero en la altura de la pantalla, y la barra queda pegada arriba. */
+.seccion-del-mapa {
+  --alto-de-la-barra: 128px;
+}
+
+.seccion-del-mapa .mapa {
+  max-height: calc(100vh - var(--alto-de-la-barra) - 16px);
+}
+
+.barra-del-mapa {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  min-height: var(--alto-de-la-barra);
+  box-sizing: border-box;
+  padding: 8px 16px;
+  margin-bottom: 8px;
+  border-radius: 0 0 8px 8px;
+  background: #fff;
+  box-shadow: 0 2px 6px #0002;
+}
+
+.barra-del-mapa p {
+  margin: 4px 0;
+}
+
+.barra-del-mapa-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.barra-del-mapa-fila button {
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.tirada {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 32px;
+}
+
+.lado-de-tirada {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dados {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.dado {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  font-weight: bold;
+  border: 1px solid #0004;
+}
