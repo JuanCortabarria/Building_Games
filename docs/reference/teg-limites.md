@@ -122,3 +122,34 @@ Fuente: `common/limitrof.h` y `common/country.cpp` del TEG digital de Ricardo Qu
 - **Asia:** Arabia 2, Aral 5, China 8, Gobi 3, India 4, Irán 7, Israel 3, Japón 2, Kamchatka 4, Malasia 3, Mongolia 5, Siberia 6, Taimir 2, Tartaria 3, Turquía 6
 - **África:** Egipto 6, Etiopía 4, Madagascar 2, Sahara 5, Sudáfrica 2, Zaire 4
 - **Oceanía:** Australia 4, Borneo 2, Java 1, Sumatra 2
+
+## Tipo de cada frontera: tierra o agua
+
+Aporte del usuario (2026-10-21): la misma lista de 89 pares, verificada par por par contra la de arriba, con el tipo de cada frontera. El tipo no cambia nada en el juego (atacar y reagrupar valen igual por tierra o por agua); sirve para dibujar el tablero, por ejemplo las rutas por mar.
+
+**67 por tierra y 22 por agua.** Son por agua:
+
+- Brasil – Sahara
+- Chile – Australia
+- Alaska – Kamchatka
+- Groenlandia – Labrador
+- Groenlandia – Nueva York
+- Groenlandia – Islandia
+- Alemania – Gran Bretaña
+- España – Gran Bretaña
+- España – Sahara
+- Gran Bretaña – Islandia
+- Islandia – Suecia
+- Polonia – Egipto
+- China – Japón
+- India – Sumatra
+- Japón – Kamchatka
+- Malasia – Borneo
+- Turquía – Egipto
+- Egipto – Madagascar
+- Madagascar – Zaire
+- Australia – Borneo
+- Australia – Java
+- Australia – Sumatra
+
+Todas las demás son por tierra. Según el aporte, el tipo de tres no está confirmado: Egipto – Israel (tierra), Egipto – Turquía (agua) y Labrador – Terranova (tierra). El texto original tenía dos errores que no se copiaron: ponía "oceania" como un séptimo país de África, y su columna "dudoso" decía "no" en todas las filas, aunque nombraba esas tres como dudosas.
