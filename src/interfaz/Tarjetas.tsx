@@ -13,18 +13,18 @@ const DIBUJO: Record<Simbolo, string> = {
 /**
  * Las tarjetas de país del jugador en turno, la que recibió el último que pasó el turno y el canje.
  * Las de los rivales no se muestran: de ellos se ve solo cuántas tienen, en el orden de juego. Sin
- * `aLaVista` (en el turno de la computadora) tampoco se muestran las del jugador en turno.
+ * `secretosALaVista` (en el turno de la computadora) tampoco se muestran las del jugador en turno.
  * Las tarjetas para canjear se eligen en cualquier momento: si forman un canje que se puede hacer ahora
  * lo dice el motor, aplicándolo de prueba (la partida no cambia hasta que se aplica de verdad).
  */
 export function Tarjetas({
   partida,
   alAplicar,
-  aLaVista = true,
+  secretosALaVista = true,
 }: {
   partida: Partida;
   alAplicar: (accion: Accion) => void;
-  aLaVista?: boolean;
+  secretosALaVista?: boolean;
 }) {
   const [elegidas, setElegidas] = useState<NombreDePais[]>([]);
   const enTurno = partida.jugadorEnTurno();
@@ -64,13 +64,13 @@ export function Tarjetas({
           )}
         </p>
       )}
-      {!terminada && !aLaVista && (
+      {!terminada && !secretosALaVista && (
         <p>
           Las tarjetas de {enTurno.nombre} no se muestran: tiene{" "}
           {tarjetas.length === 1 ? "1 tarjeta" : `${tarjetas.length} tarjetas`}.
         </p>
       )}
-      {!terminada && aLaVista && (
+      {!terminada && secretosALaVista && (
         <>
           <p>
             Tarjetas de <strong>{enTurno.nombre}</strong>: {tarjetas.length === 0 ? "ninguna." : `${tarjetas.length}.`}{" "}

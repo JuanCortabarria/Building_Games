@@ -173,7 +173,7 @@ export function VistaDePartida({
         key={`${ronda.tipo} ${ronda.numero} ${enTurno.color}`}
         partida={partida}
         alAplicar={aplicar}
-        aLaVista={secretosALaVista}
+        secretosALaVista={secretosALaVista}
       />
       {/* También se vuelve a armar en cada turno, para que el objetivo empiece plegado. */}
       {secretosALaVista && <Objetivo key={`objetivo ${ronda.tipo} ${ronda.numero} ${enTurno.color}`} partida={partida} />}

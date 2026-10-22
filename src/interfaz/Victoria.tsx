@@ -1,7 +1,6 @@
 import { useState } from "react";
-import type { Color, MotivoDeLaVictoria, Partida } from "../motor/partida";
-import { PAISES_PARA_GANAR } from "../motor/partida";
-import { ESTILO_DE_COLOR } from "./colores";
+import { PAISES_PARA_GANAR, type Color, type MotivoDeLaVictoria, type Partida } from "../motor/partida";
+import { ESTILO_DE_COLOR, variablesDeColor } from "./colores";
 import { ADondeApunta } from "./Objetivo";
 import "./objetivos.css";
 
@@ -33,7 +32,6 @@ export function Victoria({
   const paises = partida.paises();
   const cuantosPaises = (color: Color) => paises.filter((pais) => pais.ocupante === color).length;
   const conObjetivos = partida.modo() === "objetivosSecretos";
-  const { fondo, texto } = ESTILO_DE_COLOR[ganador.color];
 
   return (
     <div className="fondo-de-la-victoria">
@@ -42,7 +40,7 @@ export function Victoria({
         role="dialog"
         aria-modal="true"
         aria-labelledby="titulo-de-la-victoria"
-        style={{ ["--color-del-jugador" as string]: fondo, ["--texto-del-jugador" as string]: texto }}
+        style={variablesDeColor(ganador.color)}
       >
         <header className="victoria-encabezado">
           <span className="trofeo" aria-hidden>
@@ -76,7 +74,7 @@ export function Victoria({
                   {objetivo && (
                     <>
                       <p className="descripcion-del-objetivo">{objetivo.descripcion}</p>
-                      <ADondeApunta objetivo={objetivo} pasado />
+                      <ADondeApunta objetivo={objetivo} partidaTerminada />
                     </>
                   )}
                 </div>
@@ -85,7 +83,7 @@ export function Victoria({
           })}
         </ul>
         <div className="victoria-botones">
-          <button type="button" className="principal" onClick={alEmpezarOtra}>
+          <button type="button" className="principal" onClick={alEmpezarOtra} autoFocus>
             Jugar otra partida
           </button>
           <button type="button" onClick={() => setAbierta(false)}>

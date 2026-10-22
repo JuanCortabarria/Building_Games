@@ -308,12 +308,27 @@ describe("el objetivo 2 y sus 3 países limítrofes entre sí", () => {
   });
 
   it("los países de América del Sur y de Europa no cuentan para el grupo", () => {
-    // Rusia y Suecia son de Europa y Brasil de América del Sur: con Sahara forman una cadena, pero no valen.
+    // Brasil, Sahara y Zaire forman una cadena, pero Brasil es de América del Sur: fuera de América del Sur
+    // y de Europa, Ana tiene solo 2.
     const partida = anaConquista({
       objetivo: { tipo: "ocupacion", numero: 2 },
-      suyos: [...SUDAMERICA_Y_SIETE_DE_EUROPA, "Rusia", "Suecia", "Zaire"],
+      suyos: [...SUDAMERICA_Y_SIETE_DE_EUROPA, "Zaire"],
       falta: "Sahara",
       desde: "Brasil",
+    });
+
+    expect(partida.ganador()).toBeNull();
+  });
+});
+
+describe("los continentes que pide un objetivo van enteros", () => {
+  it("sin un país de un continente que el objetivo pide entero, no lo cumple", () => {
+    // El objetivo 3 pide Asia entera: Ana conquista Japón, pero Kamchatka es de Caro.
+    const partida = anaConquista({
+      objetivo: { tipo: "ocupacion", numero: 3 },
+      suyos: [...ASIA.filter((pais) => pais !== "Japón" && pais !== "Kamchatka"), ...AMERICA_DEL_SUR],
+      falta: "Japón",
+      desde: "China",
     });
 
     expect(partida.ganador()).toBeNull();
@@ -369,7 +384,7 @@ describe("ganar por un objetivo de destrucción", () => {
     });
   });
 
-  it("la víctima es la que dice el objetivo hoy: si apunta al de la derecha, gana destruyendo a ese", () => {
+  it("si la tarjeta dice su propio color, gana destruyendo a su víctima, el jugador de la derecha", () => {
     // La tarjeta dice azul, el color de Ana, así que su víctima es Beto, el siguiente en el orden de juego.
     const partida = anaDestruyeABeto({ Ana: { tipo: "destruccion", color: "azul", victima: "rojo" } });
 

@@ -1,6 +1,7 @@
 import type { EstadoDeAzar, FuenteDeAzar } from "./azar";
 import { CONTINENTES, PAISES, PARES_LIMITROFES, type NombreDeContinente, type NombreDePais } from "./mapa";
 import {
+  cumpleOcupacion,
   descripcionDeDestruccion,
   OBJETIVOS,
   OCUPACIONES,
@@ -38,8 +39,8 @@ export type ModoDePartida = "objetivosSecretos" | "objetivoComun";
  * jugador le queda solo el objetivo común.
  */
 export type ObjetivoAsignado =
-  | { tipo: "ocupacion"; numero: NumeroDeOcupacion }
-  | { tipo: "destruccion"; color: Color; victima: Color | null };
+  | Extract<Objetivo, { tipo: "ocupacion" }>
+  | (Extract<Objetivo, { tipo: "destruccion" }> & { victima: Color | null });
 
 export interface DatosDeJugador {
   nombre: string;
@@ -84,6 +85,7 @@ export interface EstadoDePartida {
   conquistasEnEsteTurno: number;
   /** La tarjeta que recibió el último que pasó el turno, y cuántos ejércitos le dio, o nada si no recibió. */
   tarjetaRecibida: { color: Color; pais: NombreDePais; ejercitos: number } | null;
+  /** Si se juega con objetivos secretos o solo con el objetivo común. */
   modo: ModoDePartida;
   /** El objetivo secreto de cada jugador. Solo con el objetivo común, no hay ninguno. */
   objetivos: Partial<Record<Color, ObjetivoAsignado>>;
@@ -597,45 +599,7 @@ function cumpleSuObjetivoSecreto(estado: EstadoDePartida, color: Color): boolean
   const objetivo = estado.objetivos[color];
   if (objetivo === undefined) return false;
   if (objetivo.tipo === "destruccion") return objetivo.victima !== null && !ocupaAlgunPais(estado.paises, objetivo.victima);
-  const { continentes, paises, limitrofesEntreSi } = OCUPACIONES[objetivo.numero];
-  const esSuyo = (pais: NombreDePais) => estado.paises[pais].ocupante === color;
-  const suyosEn = (continente: NombreDeContinente) =>
-    PAISES.filter((pais) => pais.continente === continente && esSuyo(pais.nombre)).length;
-  const completos = continentes.every((nombre) => CONTINENTES.find((c) => c.nombre === nombre)!.paises.every(esSuyo));
-  const cantidades = (Object.entries(paises) as [NombreDeContinente, number][]).every(
-    ([continente, cantidad]) => suyosEn(continente) >= cantidad,
-  );
-  if (!completos || !cantidades) return false;
-  if (limitrofesEntreSi === undefined) return true;
-  // El grupo es de países propios fuera de los continentes que nombra el objetivo.
-  const nombrados = new Set<NombreDeContinente>([...continentes, ...(Object.keys(paises) as NombreDeContinente[])]);
-  const candidatos = PAISES.filter((pais) => !nombrados.has(pais.continente) && esSuyo(pais.nombre)).map(
-    (pais) => pais.nombre,
-  );
-  return mayorGrupoDeLimitrofes(candidatos) >= limitrofesEntreSi;
-}
-
-/**
- * La cantidad de países del grupo más grande en que cada uno es limítrofe de al menos otro, pasando
- * solo por los países dados. Un grupo de N o más contiene uno de exactamente N con esa propiedad.
- */
-function mayorGrupoDeLimitrofes(paises: readonly NombreDePais[]): number {
-  const porVisitar = new Set(paises);
-  let mayor = 0;
-  for (const inicio of paises) {
-    if (!porVisitar.has(inicio)) continue;
-    porVisitar.delete(inicio);
-    const pendientes = [inicio];
-    let tamano = 0;
-    for (let pais = pendientes.pop(); pais !== undefined; pais = pendientes.pop()) {
-      tamano++;
-      for (const limitrofe of limitrofesDe(pais)) {
-        if (porVisitar.delete(limitrofe)) pendientes.push(limitrofe);
-      }
-    }
-    mayor = Math.max(mayor, tamano);
-  }
-  return mayor;
+  return cumpleOcupacion(objetivo.numero, (pais) => estado.paises[pais].ocupante === color);
 }
 
 /**

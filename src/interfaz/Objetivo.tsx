@@ -1,5 +1,4 @@
-import type { ObjetivoDeJugador, Partida } from "../motor/partida";
-import { PAISES_PARA_GANAR } from "../motor/partida";
+import { PAISES_PARA_GANAR, type ObjetivoDeJugador, type Partida } from "../motor/partida";
 import "./objetivos.css";
 
 /**
@@ -35,19 +34,28 @@ export function Objetivo({ partida }: { partida: Partida }) {
   );
 }
 
-/** Para un objetivo de destrucción, a quién hay que destruir hoy, o que ya no se puede. */
-export function ADondeApunta({ objetivo, pasado = false }: { objetivo: ObjetivoDeJugador; pasado?: boolean }) {
+/**
+ * Para un objetivo de destrucción, a quién hay que destruir hoy, o que ya no se puede. Con la partida
+ * terminada lo cuenta en pasado.
+ */
+export function ADondeApunta({
+  objetivo,
+  partidaTerminada = false,
+}: {
+  objetivo: ObjetivoDeJugador;
+  partidaTerminada?: boolean;
+}) {
   if (objetivo.tipo !== "destruccion") return null;
   if (objetivo.victima === null) {
     return (
       <p className="a-donde-apunta">
-        A su víctima la destruyó otro jugador: {pasado ? "le quedó" : "queda"} solo el objetivo común.
+        A su víctima la destruyó otro jugador: {partidaTerminada ? "le quedó" : "queda"} solo el objetivo común.
       </p>
     );
   }
   return (
     <p className="a-donde-apunta">
-      {pasado ? "Tenía que destruir a" : "Hoy apunta a"} <strong>{objetivo.victima.nombre}</strong> ({objetivo.victima.color}).
+      {partidaTerminada ? "Tenía que destruir a" : "Hoy apunta a"} <strong>{objetivo.victima.nombre}</strong> ({objetivo.victima.color}).
     </p>
   );
 }

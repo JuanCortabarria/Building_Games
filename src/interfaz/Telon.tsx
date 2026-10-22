@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { Color, DatosDeJugador, Partida } from "../motor/partida";
-import { ESTILO_DE_COLOR } from "./colores";
+import { variablesDeColor } from "./colores";
 import "./objetivos.css";
 
 export interface EstadoDelTelon {
@@ -23,11 +23,11 @@ export function useTelon({
   partida: Partida | null;
   computadoras: readonly Color[];
 }): EstadoDelTelon {
-  // La última persona que levantó el telón. Mientras siga su turno, o le toque otro turno seguido, no tapa.
-  const [miro, setMiro] = useState<Color | null>(null);
-
-  // Una partida nueva trae su propia lista de computadoras: la pantalla vuelve a taparse.
-  useEffect(() => setMiro(null), [computadoras]);
+  // La última persona que levantó el telón, en qué partida. Mientras siga su turno, o le toque otro turno
+  // seguido, no tapa. Una partida nueva trae su propia lista de computadoras: ahí vuelve a tapar, ya desde
+  // el primer dibujo, para que no se vea nada secreto ni por un instante.
+  const [levanto, setLevanto] = useState<{ computadoras: readonly Color[]; color: Color } | null>(null);
+  const ultimaQueMiro = levanto?.computadoras === computadoras ? levanto.color : null;
 
   if (partida === null || partida.modo() !== "objetivosSecretos" || partida.ganador() !== null) {
     return { tapa: false, levantar: () => {} };
@@ -37,8 +37,8 @@ export function useTelon({
     .ordenDeJuego()
     .filter(({ color }) => !computadoras.includes(color) && !destruidos.includes(color));
   const enTurno = partida.jugadorEnTurno().color;
-  const tapa = personas.length >= 2 && !computadoras.includes(enTurno) && miro !== enTurno;
-  return { tapa, levantar: () => setMiro(enTurno) };
+  const tapa = personas.length >= 2 && !computadoras.includes(enTurno) && ultimaQueMiro !== enTurno;
+  return { tapa, levantar: () => setLevanto({ computadoras, color: enTurno }) };
 }
 
 /**
@@ -49,19 +49,18 @@ const ESPERA_PARA_LEVANTAR = 600;
 
 /** Tapa toda la pantalla hasta que la toque el jugador en turno. */
 export function Telon({ jugador, alLevantar }: { jugador: DatosDeJugador; alLevantar: () => void }) {
-  const { fondo, texto } = ESTILO_DE_COLOR[jugador.color];
   const aparecio = useRef(performance.now());
   return (
     <button
       type="button"
       className="telon"
-      style={{ ["--color-del-jugador" as string]: fondo, ["--texto-del-jugador" as string]: texto }}
+      style={variablesDeColor(jugador.color)}
       onClick={() => {
         if (performance.now() - aparecio.current >= ESPERA_PARA_LEVANTAR) alLevantar();
       }}
       autoFocus
     >
-      <span className="telon-ficha" aria-hidden />
+      <span className="telon-muestra-de-color" aria-hidden />
       <span className="telon-titulo">
         Turno de <strong>{jugador.nombre}</strong>
       </span>
