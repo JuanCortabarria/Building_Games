@@ -1,24 +1,40 @@
 import { Component, useState, type ReactNode } from "react";
-import type { Partida } from "../motor/partida";
+import type { Color, Partida } from "../motor/partida";
 import { CrearPartida } from "./CrearPartida";
-import { cargarPartida, guardarPartida } from "./guardado";
+import { cargarPartida, guardarPartida, type PartidaEnJuego } from "./guardado";
+import { AvisoDeLaComputadora, Bloqueable, useTurnoDeLaComputadora } from "./TurnoDeLaComputadora";
 import { VistaDePartida } from "./VistaDePartida";
 
+/** Sin partida no hay jugadores de la computadora. Es una sola lista, para que no cambie en cada dibujo. */
+const NINGUNA_COMPUTADORA: readonly Color[] = [];
+
 export function App() {
-  const [partida, setPartida] = useState<Partida | null>(cargarPartida);
+  const [enJuego, setEnJuego] = useState<PartidaEnJuego | null>(cargarPartida);
+  const partida = enJuego?.partida ?? null;
   // Con una partida guardada, se puede ir a crear otra; la guardada se reemplaza recién al crearla.
   const [creandoOtra, setCreandoOtra] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
 
-  const cambiar = (nueva: Partida) => {
+  const empezar = (nueva: PartidaEnJuego) => {
     guardarPartida(nueva);
-    setPartida(nueva);
+    setEnJuego(nueva);
     setCreandoOtra(false);
     setAviso(null);
   };
 
+  const computadoras = enJuego?.computadoras ?? NINGUNA_COMPUTADORA;
+  const cambiar = (nueva: Partida) => empezar({ partida: nueva, computadoras });
+
+  // Mientras se crea otra partida, la computadora no sigue jugando la guardada.
+  const turnoDeLaComputadora = useTurnoDeLaComputadora({
+    partida,
+    computadoras,
+    activo: !creandoOtra,
+    alCambiar: cambiar,
+  });
+
   const noSePudoMostrar = () => {
-    setPartida(null);
+    setEnJuego(null);
     setAviso("No se pudo abrir la partida guardada. Podés empezar una nueva.");
   };
 
@@ -31,7 +47,11 @@ export function App() {
             Empezar una partida nueva
           </button>
           <SiFalla alFallar={noSePudoMostrar}>
-            <VistaDePartida partida={partida} alCambiar={cambiar} />
+            {/* En el turno de la computadora, las personas miran pero no pueden actuar. */}
+            <Bloqueable bloqueado={turnoDeLaComputadora.juega}>
+              <VistaDePartida partida={partida} alCambiar={cambiar} />
+            </Bloqueable>
+            <AvisoDeLaComputadora turno={turnoDeLaComputadora} partida={partida} />
           </SiFalla>
         </>
       ) : (
@@ -45,7 +65,7 @@ export function App() {
               </button>
             </p>
           )}
-          <CrearPartida alCrear={cambiar} />
+          <CrearPartida alCrear={empezar} />
         </>
       )}
     </main>

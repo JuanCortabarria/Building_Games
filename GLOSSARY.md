@@ -19,8 +19,12 @@ _Avoid_: Vecino, adyacente, conectado
 ## Jugadores
 
 **Jugador**:
-Una persona que juega una partida. Se lo nombra por su nombre y tiene un color propio.
+Quien juega una partida: una persona o la computadora. Se lo nombra por su nombre y tiene un color propio.
 _Avoid_: Ejército (para referirse a un jugador), participante, usuario
+
+**Jugador de la computadora**:
+Jugador cuyos turnos juega la aplicación sola, eligiendo cada acción con una estrategia. Para el motor es un jugador como cualquier otro: quién es de la computadora lo sabe la pantalla.
+_Avoid_: Bot, IA, CPU, jugador artificial
 
 **Color**:
 Uno de seis colores (azul, rojo, negro, amarillo, verde y magenta) que identifica a los ejércitos de un jugador durante una partida. Los objetivos de destrucción apuntan a un color, no a un nombre.

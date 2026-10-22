@@ -7,33 +7,47 @@ import {
   crearPartida,
   type Color,
   type DatosDeJugador,
-  type Partida,
 } from "../motor/partida";
+import type { PartidaEnJuego } from "./guardado";
 
-const JUGADORES_INICIALES: DatosDeJugador[] = [
-  { nombre: "", color: "azul" },
-  { nombre: "", color: "rojo" },
+/** Un jugador por anotar, y si lo maneja una persona o la computadora. */
+interface JugadorPorAnotar extends DatosDeJugador {
+  computadora: boolean;
+}
+
+const JUGADORES_INICIALES: JugadorPorAnotar[] = [
+  { nombre: "", color: "azul", computadora: false },
+  { nombre: "", color: "rojo", computadora: true },
 ];
 
-export function CrearPartida({ alCrear }: { alCrear: (partida: Partida) => void }) {
-  const [jugadores, setJugadores] = useState<DatosDeJugador[]>(JUGADORES_INICIALES);
+export function CrearPartida({ alCrear }: { alCrear: (enJuego: PartidaEnJuego) => void }) {
+  const [jugadores, setJugadores] = useState<JugadorPorAnotar[]>(JUGADORES_INICIALES);
   const [error, setError] = useState<string | null>(null);
 
-  const cambiar = (i: number, cambio: Partial<DatosDeJugador>) =>
+  const cambiar = (i: number, cambio: Partial<JugadorPorAnotar>) =>
     setJugadores((actuales) => actuales.map((jugador, j) => (j === i ? { ...jugador, ...cambio } : jugador)));
 
   const agregar = () =>
     setJugadores((actuales) => {
       const [libre] = coloresDisponibles(actuales);
-      return libre ? [...actuales, { nombre: "", color: libre }] : actuales;
+      return libre ? [...actuales, { nombre: "", color: libre, computadora: true }] : actuales;
     });
 
   const quitar = (i: number) => setJugadores((actuales) => actuales.filter((_, j) => j !== i));
 
   const crear = () => {
-    const resultado = crearPartida(jugadores, fuenteConSemilla(Date.now()));
-    if (resultado.ok) alCrear(resultado.partida);
-    else setError(resultado.error);
+    // A la computadora sin nombre se le pone uno, para no obligar a inventárselo.
+    const datos = jugadores.map(({ nombre, color, computadora }, i) => ({
+      nombre: computadora && nombre.trim() === "" ? `Computadora ${i + 1}` : nombre,
+      color,
+    }));
+    const resultado = crearPartida(datos, fuenteConSemilla(Date.now()));
+    if (resultado.ok) {
+      const computadoras = jugadores.filter((jugador) => jugador.computadora).map((jugador) => jugador.color);
+      alCrear({ partida: resultado.partida, computadoras });
+    } else {
+      setError(resultado.error);
+    }
   };
 
   return (
@@ -46,7 +60,7 @@ export function CrearPartida({ alCrear }: { alCrear: (partida: Partida) => void 
             <li key={i}>
               <input
                 aria-label={`Nombre del jugador ${i + 1}`}
-                placeholder={`Jugador ${i + 1}`}
+                placeholder={jugador.computadora ? `Computadora ${i + 1}` : `Jugador ${i + 1}`}
                 value={jugador.nombre}
                 onChange={(e) => cambiar(i, { nombre: e.target.value })}
               />
@@ -60,6 +74,14 @@ export function CrearPartida({ alCrear }: { alCrear: (partida: Partida) => void 
                     {color}
                   </option>
                 ))}
+              </select>
+              <select
+                aria-label={`Quién maneja al jugador ${i + 1}`}
+                value={jugador.computadora ? "computadora" : "persona"}
+                onChange={(e) => cambiar(i, { computadora: e.target.value === "computadora" })}
+              >
+                <option value="persona">Persona</option>
+                <option value="computadora">Computadora</option>
               </select>
               {jugadores.length > CANTIDAD_DE_JUGADORES.minima && (
                 <button type="button" onClick={() => quitar(i)}>
