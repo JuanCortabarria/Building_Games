@@ -1,5 +1,7 @@
 import type { EstadoDeAzar, FuenteDeAzar } from "./azar";
 import { CONTINENTES, PAISES, PARES_LIMITROFES, type NombreDeContinente, type NombreDePais } from "./mapa";
+import { compararDados, cuantosPerdio } from "./dados";
+import { anotarAccion, anotarQueEmpezoLaRonda, type Evento } from "./registro";
 import {
   conquistasParaRecibirTarjeta,
   EJERCITOS_POR_TARJETA,
@@ -59,6 +61,8 @@ export interface EstadoDePartida {
   conquistasEnEsteTurno: number;
   /** La tarjeta que recibió el último que pasó el turno, y cuántos ejércitos le dio, o nada si no recibió. */
   tarjetaRecibida: { color: Color; pais: NombreDePais; ejercitos: number } | null;
+  /** Los últimos eventos de la partida, del más viejo al más nuevo (ver `registro.ts`). */
+  registro: Evento[];
 }
 
 /** El resultado de una tirada de ataque. */
@@ -153,6 +157,8 @@ export interface Partida {
   tarjetaRecibida(): TarjetaRecibida | null;
   /** Cuántas tarjetas quedan en el mazo, sin contar el descarte. */
   tarjetasEnElMazo(): number;
+  /** Los últimos eventos de la partida, del más viejo al más nuevo. */
+  registro(): readonly Evento[];
   /** Aplica una acción y devuelve la partida que queda, o un error que explica qué regla la impide. */
   aplicar(accion: Accion): ResultadoDePartida;
 }
@@ -219,8 +225,9 @@ export function crearPartida(
     canjes: Object.fromEntries(ordenDeJuego.map(({ color }) => [color, 0])),
     conquistasEnEsteTurno: 0,
     tarjetaRecibida: null,
+    registro: [],
   });
-  return { ok: true, partida: partidaDesde(estado, azar) };
+  return { ok: true, partida: partidaDesde(anotarQueEmpezoLaRonda(estado), azar) };
 }
 
 /**
@@ -281,10 +288,12 @@ function partidaDesde(estado: EstadoDePartida, azar: FuenteDeAzar): Partida {
       return { jugador: { nombre: nombreDe(estado, color), color }, tarjeta: tarjetaDePais(pais), ejercitos };
     },
     tarjetasEnElMazo: () => estado.mazo.length,
+    registro: () => structuredClone(estado.registro),
     destinosDeReagrupe: (desde) => [...alcanzablesPorPaisesPropios(estado, desde)].filter((pais) => pais !== desde),
     aplicar: (accion) => {
       const resultado = aplicar(estado, accion, azar);
-      return resultado.ok ? { ok: true, partida: partidaDesde(resultado.estado, azar) } : resultado;
+      if (!resultado.ok) return resultado;
+      return { ok: true, partida: partidaDesde(anotarAccion(estado, accion, resultado.estado), azar) };
     },
   };
 }
@@ -416,13 +425,9 @@ function atacar(
   }
   const dadosDelAtacante = deMayorAMenor(azar.tirarDados(Math.min(3, origen.ejercitos - 1)));
   const dadosDelDefensor = deMayorAMenor(azar.tirarDados(Math.min(3, destino.ejercitos)));
-  let perdidosDelAtacante = 0;
-  let perdidosDelDefensor = 0;
-  // Se comparan de a pares, tantos como dados tiró el lado que tiró menos. El empate lo gana el defensor.
-  for (let i = 0; i < Math.min(dadosDelAtacante.length, dadosDelDefensor.length); i++) {
-    if (dadosDelAtacante[i]! > dadosDelDefensor[i]!) perdidosDelDefensor++;
-    else perdidosDelAtacante++;
-  }
+  const comparados = compararDados(dadosDelAtacante, dadosDelDefensor);
+  const perdidosDelAtacante = cuantosPerdio(comparados.atacante);
+  const perdidosDelDefensor = cuantosPerdio(comparados.defensor);
   let quedanEnOrigen = { ...origen, ejercitos: origen.ejercitos - perdidosDelAtacante };
   let quedanEnDestino = { ...destino, ejercitos: destino.ejercitos - perdidosDelDefensor };
   const conquista = quedanEnDestino.ejercitos === 0;

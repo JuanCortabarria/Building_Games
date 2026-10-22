@@ -1,0 +1,179 @@
+/* Los dados de una tirada, con caras de dado, y el registro "Lo que pasó". */
+
+.dados-con-caras {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  vertical-align: middle;
+  --lado-del-dado: 32px;
+}
+
+.dados-con-caras.chicos {
+  gap: 3px;
+  --lado-del-dado: 18px;
+}
+
+.dado-que-rueda {
+  display: inline-block;
+  line-height: 0;
+}
+
+.cara-de-dado {
+  display: inline-grid;
+  grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+  place-items: center;
+  box-sizing: border-box;
+  width: var(--lado-del-dado);
+  height: var(--lado-del-dado);
+  padding: calc(var(--lado-del-dado) * 0.14);
+  border-radius: calc(var(--lado-del-dado) * 0.2);
+  background: var(--fondo-del-dado);
+  border: 1px solid #0005;
+  box-shadow:
+    inset 0 -2px 0 #0003,
+    0 1px 2px #0003;
+  transition:
+    opacity 200ms,
+    transform 200ms;
+}
+
+.punto-del-dado {
+  width: 70%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--punto-del-dado);
+}
+
+/* Cómo le fue a cada dado: el que ganó su par se marca, el que lo perdió se apaga. */
+.cara-de-dado.gano {
+  outline: 2px solid #e0a800;
+  outline-offset: 1px;
+}
+
+.cara-de-dado.perdio {
+  opacity: 0.45;
+  transform: scale(0.9);
+}
+
+.cara-de-dado.sinPar {
+  opacity: 0.7;
+}
+
+.chicos .cara-de-dado.gano {
+  outline-width: 1.5px;
+}
+
+/* Al tirar, cada dado entra rodando, uno tras otro. */
+.dado-que-rueda.tirando {
+  animation: rodar-el-dado 550ms cubic-bezier(0.2, 0.7, 0.3, 1.2) both;
+  animation-delay: calc(var(--orden-del-dado) * 90ms);
+}
+
+@keyframes rodar-el-dado {
+  0% {
+    transform: translate(-18px, -10px) rotate(-320deg) scale(0.5);
+    opacity: 0;
+  }
+  60% {
+    transform: translate(2px, 1px) rotate(12deg) scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* Lo que pasó: el más nuevo arriba. */
+.lo-que-paso {
+  margin-bottom: 16px;
+}
+
+.lo-que-paso .eventos {
+  max-height: 340px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: inset 0 1px 3px #0002;
+}
+
+.evento {
+  margin: 2px 0;
+  padding: 5px 10px;
+  border-left: 4px solid var(--color-del-evento);
+  border-radius: 4px;
+  line-height: 1.7;
+}
+
+.evento:first-child {
+  animation: aparecer-el-evento 400ms ease-out;
+}
+
+@keyframes aparecer-el-evento {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+    background: #fff4c2;
+  }
+}
+
+.icono-del-evento {
+  margin-right: 6px;
+}
+
+.jugador-del-evento {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.jugador-del-evento .muestra-de-color {
+  width: 10px;
+  height: 10px;
+}
+
+.evento.pasoElTurno {
+  color: #6b7280;
+  font-size: 0.9em;
+}
+
+.evento.empezoLaRonda {
+  margin-top: 10px;
+  border-left: none;
+  border-bottom: 1px solid #d8d2c4;
+  color: #5b6470;
+  font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.evento.conquisto {
+  background: #fff3cd;
+  font-weight: 600;
+}
+
+.evento.destruyo {
+  background: #3a1f1f;
+  color: #fff;
+  font-weight: 600;
+}
+
+.evento.gano {
+  background: linear-gradient(90deg, #ffe08a, #fff6d6);
+  font-size: 1.15em;
+  font-weight: bold;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dado-que-rueda.tirando,
+  .evento:first-child {
+    animation: none;
+  }
+
+  .cara-de-dado {
+    transition: none;
+  }
+}
