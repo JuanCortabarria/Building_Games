@@ -1,5 +1,6 @@
 import type { EstadoDeAzar, FuenteDeAzar } from "./azar";
 import { CONTINENTES, PAISES, PARES_LIMITROFES, type NombreDeContinente, type NombreDePais } from "./mapa";
+import { compararDados, cuantosPerdio } from "./dados";
 import { anotarAccion, anotarQueEmpezoLaRonda, type Evento } from "./registro";
 import {
   conquistasParaRecibirTarjeta,
@@ -424,13 +425,9 @@ function atacar(
   }
   const dadosDelAtacante = deMayorAMenor(azar.tirarDados(Math.min(3, origen.ejercitos - 1)));
   const dadosDelDefensor = deMayorAMenor(azar.tirarDados(Math.min(3, destino.ejercitos)));
-  let perdidosDelAtacante = 0;
-  let perdidosDelDefensor = 0;
-  // Se comparan de a pares, tantos como dados tiró el lado que tiró menos. El empate lo gana el defensor.
-  for (let i = 0; i < Math.min(dadosDelAtacante.length, dadosDelDefensor.length); i++) {
-    if (dadosDelAtacante[i]! > dadosDelDefensor[i]!) perdidosDelDefensor++;
-    else perdidosDelAtacante++;
-  }
+  const comparados = compararDados(dadosDelAtacante, dadosDelDefensor);
+  const perdidosDelAtacante = cuantosPerdio(comparados.atacante);
+  const perdidosDelDefensor = cuantosPerdio(comparados.defensor);
   let quedanEnOrigen = { ...origen, ejercitos: origen.ejercitos - perdidosDelAtacante };
   let quedanEnDestino = { ...destino, ejercitos: destino.ejercitos - perdidosDelDefensor };
   const conquista = quedanEnDestino.ejercitos === 0;

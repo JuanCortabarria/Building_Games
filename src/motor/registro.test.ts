@@ -204,7 +204,7 @@ describe("el registro de la partida", () => {
   it("pasar el turno anota quién lo pasó", () => {
     const despues = partidaDe(turnoDeAna().aplicar({ tipo: "pasarTurno" }));
 
-    expect(despues.registro().at(-1)).toMatchObject({ tipo: "pasoElTurno", color: "azul", ronda: { tipo: "ataque", numero: 3 } });
+    expect(ultimoEvento(despues)).toMatchObject({ tipo: "pasoElTurno", color: "azul", ronda: { tipo: "ataque", numero: 3 } });
   });
 
   it("al pasar el turno, la tarjeta recibida se anota antes, con su país y los 2 ejércitos si lo ocupa", () => {
@@ -224,6 +224,14 @@ describe("el registro de la partida", () => {
     const despues = partidaDe(partida.aplicar({ tipo: "pasarTurno" }));
 
     expect(despues.registro().at(-2)).toMatchObject({ tipo: "recibioTarjeta", pais: "Uruguay", ejercitos: 0 });
+  });
+
+  it("si no quedan tarjetas ni en el mazo ni en el descarte, al pasar el turno no se anota tarjeta recibida", () => {
+    const partida = conquistarChile(turnoDeAna({ mazo: [], descarte: [], dados: [6, 6, 6, 1, 1, 1] }));
+
+    const despues = partidaDe(partida.aplicar({ tipo: "pasarTurno" }));
+
+    expect(despues.registro().slice(-2)).toMatchObject([{ tipo: "movioAlConquistado" }, { tipo: "pasoElTurno" }]);
   });
 
   it("cuando el último de la ronda pasa el turno, se anota que empezó la ronda siguiente, a nombre de quien la abre", () => {

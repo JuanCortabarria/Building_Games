@@ -2,8 +2,9 @@ import { useState } from "react";
 import type { NombreDePais } from "../motor/mapa";
 import type { Accion, Color, LadoDeLaTirada, Partida, Ronda, Tirada } from "../motor/partida";
 import { ESTILO_DE_COLOR } from "./colores";
-import { Dados, numeroDeLaUltimaTirada, resultadosDeLaTirada, type ResultadoDelDado } from "./Dados";
-import { LoQuePaso } from "./LoQuePaso";
+import { compararDados, type ResultadoDelDado } from "../motor/dados";
+import { Dados } from "./Dados";
+import { LoQuePaso, numeroDeLaUltimaTirada } from "./LoQuePaso";
 import { MapaEsquematico } from "./MapaEsquematico";
 import { Tarjetas } from "./Tarjetas";
 
@@ -307,7 +308,7 @@ function ResultadoDeLaTirada({
   destruido: boolean;
 }) {
   const { atacante, defensor } = tirada;
-  const resultados = resultadosDeLaTirada(tirada);
+  const resultados = compararDados(atacante.dados, defensor.dados);
   return (
     <>
       <div className="tirada" aria-label="Última tirada">

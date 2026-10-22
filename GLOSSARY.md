@@ -62,6 +62,10 @@ Cada una de las dos rondas de incorporación con que empieza una partida, de 5 y
 La parte de una ronda que le corresponde a un jugador.
 _Avoid_: Jugada, mano
 
+**Registro**:
+Lo que pasó en la partida, evento por evento (incorporaciones, tiradas, conquistas, canjes, tarjetas recibidas, destrucciones, fines de turno, comienzos de ronda y la victoria), cada uno con su ronda y el color de su jugador. Se guardan los últimos 200.
+_Avoid_: Historial, log, bitácora
+
 ## Tarjetas
 
 **Tarjeta de país**:

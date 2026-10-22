@@ -48,7 +48,7 @@ export function anotarAccion(antes: EstadoDePartida, accion: Accion, despues: Es
   const color = antes.jugadores[antes.turno]!.color;
   if (accion.tipo === "incorporar") return anotarIncorporacion(despues, antes.ronda, color, accion);
   const eventos: DatosDelEvento[] = [];
-  if (accion.tipo === "atacar" && despues.ultimaTirada) eventos.push(...tirada(despues.ultimaTirada, antes, despues));
+  if (accion.tipo === "atacar" && despues.ultimaTirada) eventos.push(...eventosDelAtaque(despues.ultimaTirada, antes, despues));
   if (accion.tipo === "moverAlConquistado" && antes.conquistaPendiente) {
     eventos.push({ tipo: "movioAlConquistado", ...antes.conquistaPendiente, cantidad: accion.cantidad });
   }
@@ -111,7 +111,7 @@ function anotar(estado: EstadoDePartida, ronda: Ronda, color: Color, eventos: re
 }
 
 /** La tirada y, si el atacante se quedó con el país, la conquista. */
-function tirada({ atacante, defensor }: Tirada, antes: EstadoDePartida, despues: EstadoDePartida): DatosDelEvento[] {
+function eventosDelAtaque({ atacante, defensor }: Tirada, antes: EstadoDePartida, despues: EstadoDePartida): DatosDelEvento[] {
   const eventos: DatosDelEvento[] = [{ tipo: "tiro", atacante, defensor }];
   if (despues.paises[defensor.pais].ocupante !== atacante.color) return eventos;
   eventos.push({ tipo: "conquisto", pais: defensor.pais, desde: atacante.pais, defensor: defensor.color });

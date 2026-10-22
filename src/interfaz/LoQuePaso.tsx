@@ -2,7 +2,8 @@ import type { CSSProperties, ReactNode } from "react";
 import type { Color, Partida, Ronda } from "../motor/partida";
 import type { Evento, MotivoDeVictoria } from "../motor/registro";
 import { ESTILO_DE_COLOR } from "./colores";
-import { Dados, resultadosDeLaTirada } from "./Dados";
+import { compararDados } from "../motor/dados";
+import { Dados } from "./Dados";
 import "./registro.css";
 
 /**
@@ -48,27 +49,21 @@ function Frase({ evento, nombreDe }: { evento: Evento; nombreDe: (color: Color) 
       );
     case "tiro": {
       const { atacante, defensor } = evento;
-      const resultados = resultadosDeLaTirada(evento);
-      const atacanteNombre = <Jugador color={atacante.color} nombreDe={nombreDe} />;
-      const defensorNombre = <Jugador color={defensor.color} nombreDe={nombreDe} />;
+      const resultados = compararDados(atacante.dados, defensor.dados);
       return (
         <>
           {quien} atacó <strong>{defensor.pais}</strong> desde <strong>{atacante.pais}</strong>:{" "}
           <Dados dados={atacante.dados} color={atacante.color} resultados={resultados.atacante} chicos /> contra{" "}
           <Dados dados={defensor.dados} color={defensor.color} resultados={resultados.defensor} chicos />.{" "}
-          {atacante.perdidos > 0 && defensor.perdidos > 0 ? (
-            <>
-              {atacanteNombre} perdió {atacante.perdidos} y {defensorNombre} perdió {defensor.perdidos}.
-            </>
-          ) : atacante.perdidos > 0 ? (
-            <>
-              {atacanteNombre} perdió {atacante.perdidos}.
-            </>
-          ) : (
-            <>
-              {defensorNombre} perdió {defensor.perdidos}.
-            </>
-          )}
+          {[atacante, defensor]
+            .filter((lado) => lado.perdidos > 0)
+            .map((lado, i) => (
+              <span key={lado.color}>
+                {i > 0 && " y "}
+                <Jugador color={lado.color} nombreDe={nombreDe} /> perdió {lado.perdidos}
+              </span>
+            ))}
+          .
         </>
       );
     }
@@ -157,4 +152,15 @@ function ejercitos(cantidad: number): string {
 
 function lista(cosas: readonly string[]): string {
   return cosas.length < 2 ? cosas.join("") : `${cosas.slice(0, -1).join(", ")} y ${cosas.at(-1)}`;
+}
+
+/**
+ * Un número distinto para cada tirada de la partida (el lugar de su evento en el registro), para que los
+ * dados vuelvan a rodar en cada tirada, aunque salga lo mismo que en la anterior.
+ */
+export function numeroDeLaUltimaTirada(registro: readonly Evento[]): number | undefined {
+  for (let i = registro.length - 1; i >= 0; i--) {
+    if (registro[i]!.tipo === "tiro") return registro[i]!.orden;
+  }
+  return undefined;
 }
