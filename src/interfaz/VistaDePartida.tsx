@@ -2,6 +2,8 @@ import { useState } from "react";
 import type { NombreDePais } from "../motor/mapa";
 import type { Accion, Color, LadoDeLaTirada, Partida, Ronda, Tirada } from "../motor/partida";
 import { ESTILO_DE_COLOR } from "./colores";
+import { Dados, numeroDeLaUltimaTirada, resultadosDeLaTirada, type ResultadoDelDado } from "./Dados";
+import { LoQuePaso } from "./LoQuePaso";
 import { MapaEsquematico } from "./MapaEsquematico";
 import { Tarjetas } from "./Tarjetas";
 
@@ -175,6 +177,7 @@ export function VistaDePartida({ partida, alCambiar }: { partida: Partida; alCam
           ))}
         </ol>
       </section>
+      <LoQuePaso partida={partida} />
       <section className="seccion-del-mapa">
         <h2>Mapa</h2>
         {/* Queda pegada arriba mientras se juega en el mapa, para que la tirada y los errores estén a la vista. */}
@@ -267,6 +270,8 @@ export function VistaDePartida({ partida, alCambiar }: { partida: Partida; alCam
           )}
           {tirada && (
             <ResultadoDeLaTirada
+              // Cada tirada se vuelve a armar, para que sus dados rueden.
+              key={numeroDeLaUltimaTirada(partida.registro())}
               tirada={tirada}
               nombreDe={nombreDe}
               conquistado={paises.find((pais) => pais.nombre === tirada.defensor.pais)!.ocupante === tirada.atacante.color}
@@ -302,11 +307,12 @@ function ResultadoDeLaTirada({
   destruido: boolean;
 }) {
   const { atacante, defensor } = tirada;
+  const resultados = resultadosDeLaTirada(tirada);
   return (
     <>
       <div className="tirada" aria-label="Última tirada">
-        <LadoDeTirada titulo="Ataca" lado={atacante} nombreDe={nombreDe} />
-        <LadoDeTirada titulo="Defiende" lado={defensor} nombreDe={nombreDe} />
+        <LadoDeTirada titulo="Ataca" lado={atacante} resultados={resultados.atacante} nombreDe={nombreDe} />
+        <LadoDeTirada titulo="Defiende" lado={defensor} resultados={resultados.defensor} nombreDe={nombreDe} />
       </div>
       {conquistado && (
         <p className="conquista">
@@ -321,25 +327,20 @@ function ResultadoDeLaTirada({
 function LadoDeTirada({
   titulo,
   lado,
+  resultados,
   nombreDe,
 }: {
   titulo: string;
   lado: LadoDeLaTirada;
+  resultados: readonly ResultadoDelDado[];
   nombreDe: (color: Color) => string;
 }) {
-  const { fondo, texto } = ESTILO_DE_COLOR[lado.color];
   return (
     <p className="lado-de-tirada">
       <span>
         {titulo} <strong>{lado.pais}</strong> ({nombreDe(lado.color)}):
       </span>
-      <span className="dados" aria-label={`dados ${lado.dados.join(", ")}`}>
-        {lado.dados.map((dado, i) => (
-          <span key={i} className="dado" style={{ background: fondo, color: texto }}>
-            {dado}
-          </span>
-        ))}
-      </span>
+      <Dados dados={lado.dados} color={lado.color} resultados={resultados} tirando />
       <span>
         perdió <strong>{lado.perdidos}</strong> ejército{lado.perdidos === 1 ? "" : "s"}
       </span>

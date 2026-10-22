@@ -111,6 +111,8 @@ describe("elegirAccion", () => {
 
       expect(partida.ganador()).not.toBeNull();
       expect(acciones).toBeLessThan(TOPE_DE_ACCIONES);
+      // El registro termina contando quién ganó.
+      expect(partida.registro().at(-1)).toMatchObject({ tipo: "gano", color: partida.ganador()!.color });
     });
   });
 
