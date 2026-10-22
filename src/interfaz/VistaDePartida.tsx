@@ -1,8 +1,8 @@
 import { useState } from "react";
-import type { NombreDePais } from "../motor/mapa";
+import type { NombreDeContinente, NombreDePais } from "../motor/mapa";
 import type { Accion, Color, LadoDeLaTirada, Partida, Ronda, Tirada } from "../motor/partida";
-import { ESTILO_DE_COLOR } from "./colores";
-import { MapaEsquematico } from "./MapaEsquematico";
+import { COLOR_DEL_CONTINENTE, ESTILO_DE_COLOR } from "./colores";
+import { TableroIlustrado } from "./TableroIlustrado";
 
 const NOMBRE_DEL_TIPO: Record<Ronda["tipo"], string> = {
   incorporacion: "incorporación",
@@ -23,7 +23,7 @@ export function VistaDePartida({ partida, alCambiar }: { partida: Partida; alCam
   const ronda = partida.ronda();
   const paises = partida.paises();
   const { generales, porContinente } = partida.ejercitosPorIncorporar();
-  const extras = Object.entries(porContinente);
+  const extras = Object.entries(porContinente) as [NombreDeContinente, number][];
   const porIncorporar = extras.reduce((total, [, extra]) => total + extra, generales);
   const ejercitosDeOrigen = paises.find((pais) => pais.nombre === origen)?.ejercitos;
   const tirada = partida.ultimaTirada();
@@ -208,6 +208,9 @@ export function VistaDePartida({ partida, alCambiar }: { partida: Partida; alCam
                   </button>
                 )}
               </div>
+              {ronda.tipo === "incorporacion" && extras.length > 0 && (
+                <AvisoDeExtra generales={generales} extras={extras} />
+              )}
               {/* Mientras haya una conquista pendiente, lo único que se puede hacer es mover al país conquistado. */}
               {ronda.tipo === "ataque" && !conquista && (
                 <div className="barra-del-mapa-fila">
@@ -268,7 +271,7 @@ export function VistaDePartida({ partida, alCambiar }: { partida: Partida; alCam
           )}
           {error && <p role="alert">{error}</p>}
         </div>
-        <MapaEsquematico
+        <TableroIlustrado
           partida={partida}
           nombreDe={nombreDe}
           seleccionado={ronda.tipo === "ataque" && !ganador ? origen : null}
@@ -278,6 +281,38 @@ export function VistaDePartida({ partida, alCambiar }: { partida: Partida; alCam
         />
       </section>
     </>
+  );
+}
+
+/**
+ * Antes de poner ejércitos, avisa cuántos extra hay por cada continente ocupado entero y que solo van
+ * en países de ese continente, separados de los que van en cualquier país. Los números son los del motor.
+ */
+function AvisoDeExtra({ generales, extras }: { generales: number; extras: [NombreDeContinente, number][] }) {
+  return (
+    <div className="aviso-de-extra" role="note" aria-label="Ejércitos extra por continente">
+      <ul>
+        {extras.map(([continente, extra]) => (
+          <li key={continente}>
+            <span className="continente" style={{ background: COLOR_DEL_CONTINENTE[continente] }}>
+              +{extra}
+            </span>
+            <span>
+              Tenés <strong>{extra} ejército{extra === 1 ? "" : "s"} extra por {continente}</strong>: solo se pueden
+              poner en países de {continente}.
+            </span>
+          </li>
+        ))}
+        <li>
+          <span className="continente cualquiera">{generales}</span>
+          <span>
+            {generales === 0
+              ? "No te quedan ejércitos para cualquier país: los que faltan son extra."
+              : `Y ${generales} ejército${generales === 1 ? "" : "s"} para cualquier país tuyo.`}
+          </span>
+        </li>
+      </ul>
+    </div>
   );
 }
 
