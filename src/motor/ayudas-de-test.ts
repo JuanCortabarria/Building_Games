@@ -1,4 +1,11 @@
-import { COLORES, crearPartida, restaurarPartida, type Partida, type ResultadoDePartida } from "./partida";
+import {
+  COLORES,
+  crearPartida,
+  restaurarPartida,
+  type ObjetivoAsignado,
+  type Partida,
+  type ResultadoDePartida,
+} from "./partida";
 import { fuenteFija } from "./azar";
 import { PAISES, type NombreDePais } from "./mapa";
 
@@ -22,6 +29,7 @@ export interface Situacion {
   canjes?: Record<string, number>;
   mazo?: NombreDePais[];
   descarte?: NombreDePais[];
+  objetivos?: Record<string, ObjetivoAsignado>;
 }
 
 /**
@@ -37,6 +45,8 @@ export interface Situacion {
  * - `tarjetas` y `canjes`: las tarjetas que tiene cada jugador y cuántos canjes hizo. Las tarjetas
  *   que se reparten así salen del mazo.
  * - `mazo` y `descarte`: si se dan, el mazo y el descarte exactos.
+ * - `objetivos`: el objetivo secreto de cada jugador. Si se dan, se juega con objetivos secretos y los
+ *   jugadores que no se nombran no tienen ninguno. Si no, se juega solo con el objetivo común.
  */
 export function partidaEnRondaDeAtaque(situacion: Situacion): Partida {
   return partidaEnRonda({ ...situacion, tipo: "ataque" });
@@ -64,6 +74,7 @@ function partidaEnRonda({
   canjes = {},
   mazo,
   descarte,
+  objetivos,
   tipo,
   porIncorporar = 0,
 }: Situacion & { tipo: "ataque" | "incorporacion"; porIncorporar?: number }): Partida {
@@ -74,7 +85,10 @@ function partidaEnRonda({
     return posicion;
   };
   const colorDe = (nombre: string) => datos[posicionDe(nombre)]!.color;
-  const estado = partidaDe(crearPartida(datos, fuenteFija({ primerasTarjetas }))).estado();
+  const modo = objetivos ? "objetivosSecretos" : "objetivoComun";
+  const estado = partidaDe(crearPartida(datos, fuenteFija({ primerasTarjetas }), { modo })).estado();
+  estado.objetivos = {};
+  for (const [nombre, objetivo] of Object.entries(objetivos ?? {})) estado.objetivos[colorDe(nombre)] = objetivo;
   for (const pais of PAISES) estado.paises[pais.nombre] = { ocupante: colorDe(resto), ejercitos: 1 };
   for (const [nombre, suyos] of Object.entries(paises)) {
     for (const pais of suyos) estado.paises[pais] = { ocupante: colorDe(nombre), ejercitos: 1 };

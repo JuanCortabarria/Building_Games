@@ -1,10 +1,13 @@
 import type { NombreDePais } from "./mapa";
+import { mismoObjetivo, type Objetivo } from "./objetivos";
 
 export interface FuenteDeAzar {
   sortearOrden<T>(jugadores: readonly T[]): T[];
   mezclarPaises(paises: readonly NombreDePais[]): NombreDePais[];
   /** Mezcla tarjetas de país: el mazo al crear la partida, o el descarte cuando el mazo se acaba. */
   mezclarTarjetas(tarjetas: readonly NombreDePais[]): NombreDePais[];
+  /** Mezcla los objetivos secretos al crear la partida: cada jugador, en el orden de juego, recibe el siguiente. */
+  mezclarObjetivos(objetivos: readonly Objetivo[]): Objetivo[];
   /** Tira la cantidad de dados pedida y devuelve sus valores, del 1 al 6, en el orden en que salieron. */
   tirarDados(cantidad: number): number[];
   /**
@@ -61,6 +64,7 @@ export function reanudarFuente({ semilla, avance }: EstadoDeAzar): FuenteDeAzar 
     sortearOrden: mezclar,
     mezclarPaises: mezclar,
     mezclarTarjetas: mezclar,
+    mezclarObjetivos: mezclar,
     tirarDados: (cantidad) => Array.from({ length: cantidad }, () => Math.floor(siguiente() * 6) + 1),
     reanudar: reanudarFuente,
     estado: () => ({ semilla, avance: sacados }),
@@ -76,6 +80,8 @@ export function reanudarFuente({ semilla, avance }: EstadoDeAzar): FuenteDeAzar 
  *   El resto queda después, en el orden en que vienen.
  * - `primerasTarjetas`: las tarjetas que cada mezcla de tarjetas deja primeras, en ese orden, si están
  *   entre las que se mezclan. El resto queda después, en el orden en que vienen.
+ * - `primerosObjetivos`: los objetivos secretos que la mezcla deja primeros, en ese orden. El resto queda
+ *   después, en el orden de la referencia.
  * - `dados`: los valores que van saliendo, en orden, tirada tras tirada. En un ataque tira primero
  *   el atacante y después el defensor: `[6, 4, 1, 5, 4]` es el atacante 6, 4, 1 y el defensor 5, 4.
  *
@@ -86,11 +92,12 @@ export function fuenteFija(
     ordenDeJuego?: number[];
     primerosPaises?: NombreDePais[];
     primerasTarjetas?: NombreDePais[];
+    primerosObjetivos?: Objetivo[];
     dados?: number[];
   } = {},
   avance = 0,
 ): FuenteDeAzar {
-  const { ordenDeJuego, primerosPaises = [], primerasTarjetas = [], dados = [] } = fijados;
+  const { ordenDeJuego, primerosPaises = [], primerasTarjetas = [], primerosObjetivos = [], dados = [] } = fijados;
   return {
     sortearOrden(jugadores) {
       if (!ordenDeJuego) return [...jugadores];
@@ -107,6 +114,7 @@ export function fuenteFija(
     },
     mezclarPaises: (paises) => primeroLosFijados(primerosPaises, paises),
     mezclarTarjetas: (tarjetas) => primeroLosFijados(primerasTarjetas, tarjetas),
+    mezclarObjetivos: (objetivos) => primeroLosFijados(primerosObjetivos, objetivos, mismoObjetivo),
     tirarDados(cantidad) {
       if (avance + cantidad > dados.length) {
         throw new Error(
@@ -124,7 +132,12 @@ export function fuenteFija(
 }
 
 /** La lista con los fijados que están en ella primero, en el orden fijado, y el resto después, como viene. */
-function primeroLosFijados<T>(fijados: readonly T[], lista: readonly T[]): T[] {
-  const primeros = fijados.filter((elemento) => lista.includes(elemento));
-  return [...primeros, ...lista.filter((elemento) => !primeros.includes(elemento))];
+function primeroLosFijados<T>(
+  fijados: readonly T[],
+  lista: readonly T[],
+  iguales: (a: T, b: T) => boolean = (a, b) => a === b,
+): T[] {
+  const esta = (en: readonly T[], elemento: T) => en.some((otro) => iguales(otro, elemento));
+  const primeros = fijados.filter((elemento) => esta(lista, elemento));
+  return [...primeros, ...lista.filter((elemento) => !esta(primeros, elemento))];
 }
