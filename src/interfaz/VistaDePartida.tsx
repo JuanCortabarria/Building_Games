@@ -4,6 +4,9 @@ import type { Accion, Color, LadoDeLaTirada, Partida, Ronda, Tirada } from "../m
 import { COLOR_DEL_CONTINENTE, ESTILO_DE_COLOR } from "./colores";
 import { TableroIlustrado } from "./TableroIlustrado";
 
+/** "1 ejército", "3 ejércitos". */
+const plural = (n: number | undefined) => `${n} ejército${n === 1 ? "" : "s"}`;
+
 const NOMBRE_DEL_TIPO: Record<Ronda["tipo"], string> = {
   incorporacion: "incorporación",
   ataque: "ataque",
@@ -100,7 +103,6 @@ export function VistaDePartida({ partida, alCambiar }: { partida: Partida; alCam
     setError(null);
   };
 
-  const plural = (n: number | undefined) => `${n} ejército${n === 1 ? "" : "s"}`;
   const indicacionDeReagrupe =
     origen === null
       ? reagrupo
@@ -298,7 +300,7 @@ function AvisoDeExtra({ generales, extras }: { generales: number; extras: [Nombr
               +{extra}
             </span>
             <span>
-              Tenés <strong>{extra} ejército{extra === 1 ? "" : "s"} extra por {continente}</strong>: solo se pueden
+              Tenés <strong>{plural(extra)} extra por {continente}</strong>: solo se pueden
               poner en países de {continente}.
             </span>
           </li>
@@ -308,7 +310,7 @@ function AvisoDeExtra({ generales, extras }: { generales: number; extras: [Nombr
           <span>
             {generales === 0
               ? "No te quedan ejércitos para cualquier país: los que faltan son extra."
-              : `Y ${generales} ejército${generales === 1 ? "" : "s"} para cualquier país tuyo.`}
+              : `Y ${plural(generales)} para cualquier país tuyo.`}
           </span>
         </li>
       </ul>

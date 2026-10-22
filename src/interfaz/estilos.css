@@ -255,6 +255,7 @@ button.principal {
 /* Un halo suave del color de la marca: se nota de lejos y no tapa los nombres. */
 .ficha.seleccionado .anillo {
   filter: drop-shadow(0 0 4px #fff) drop-shadow(0 0 9px #fff);
+  animation: pulso 1.2s ease-in-out infinite;
 }
 
 .ficha.atacable .anillo {
@@ -264,10 +265,6 @@ button.principal {
 .ficha.destino .anillo,
 .ficha.destino-posible .anillo {
   filter: drop-shadow(0 0 4px #3dffa8) drop-shadow(0 0 9px #00d27a);
-}
-
-.ficha.seleccionado .anillo {
-  animation: pulso 1.2s ease-in-out infinite;
 }
 
 .ficha.atacable .anillo-color {

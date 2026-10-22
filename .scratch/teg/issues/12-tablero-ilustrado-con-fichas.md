@@ -31,3 +31,8 @@ Las fichas no tienen que ir justo ahí: no deben tapar el nombre.
 - Tamaño: el ancho sale de lo que entra en la altura de la pantalla debajo de la barra (y del ancho de la ventana). En 1280×720 el tablero mide 830×568 y entra entero con la barra fija; en 1920×1080, 1355×928. Sin desplazamiento horizontal en los dos.
 - Probado jugando en el navegador: rondas iniciales (con clic y con Enter/Espacio), ataque, conquista y paso de ejércitos, reagrupar, y una ronda de incorporación con extra.
 
+**2026-10-21, después del code review:**
+
+- **Alto del tablero:** el tablero se dimensiona con un alto fijo reservado para la barra (`--alto-de-la-barra`, 128 px), para que no cambie de tamaño en cada tirada. Cuando la barra crece (resultado de la tirada más conquista, un error, o el aviso del 09 con dos o más continentes), el borde de abajo del tablero (la franja de la leyenda) puede quedar unos píxeles debajo de la pantalla en 1280×720. Solo hay desplazamiento vertical; el horizontal no aparece nunca.
+- **"Ficha" en el glosario:** `GLOSSARY.md` lista "Ficha" como término a evitar para Ejército. Acá "ficha" es la pieza visual del tablero que muestra los ejércitos de un país (como en la spec, "una ficha por país"), no la unidad de juego, que en pantalla y en código sigue siendo "ejército". Queda pendiente para `/domain-modeling` aclarar ese sentido en el glosario.
+- **Atacables:** se marcan con `limitrofesDe` filtrado por otro ocupante, igual que el mapa anterior (como pide el criterio "con los mismos datos que usa el mapa actual"). Una consulta del motor `atacablesDesde` sacaría ese filtro de la pantalla; no se agregó porque otra sesión cambia `partida.ts` en paralelo.
