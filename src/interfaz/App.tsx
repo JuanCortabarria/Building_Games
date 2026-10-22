@@ -2,7 +2,9 @@ import { Component, useState, type ReactNode } from "react";
 import type { Color, Partida } from "../motor/partida";
 import { CrearPartida } from "./CrearPartida";
 import { cargarPartida, guardarPartida, type PartidaEnJuego } from "./guardado";
+import { Telon, useTelon } from "./Telon";
 import { AvisoDeLaComputadora, Bloqueable, useTurnoDeLaComputadora } from "./TurnoDeLaComputadora";
+import { Victoria } from "./Victoria";
 import { VistaDePartida } from "./VistaDePartida";
 
 /** Sin partida no hay jugadores de la computadora. Es una sola lista, para que no cambie en cada dibujo. */
@@ -33,6 +35,8 @@ export function App() {
     alCambiar: cambiar,
   });
 
+  const telon = useTelon({ partida, computadoras });
+
   const noSePudoMostrar = () => {
     setEnJuego(null);
     setAviso("No se pudo abrir la partida guardada. Podés empezar una nueva.");
@@ -47,11 +51,25 @@ export function App() {
             Empezar una partida nueva
           </button>
           <SiFalla alFallar={noSePudoMostrar}>
-            {/* En el turno de la computadora, las personas miran pero no pueden actuar. */}
-            <Bloqueable bloqueado={turnoDeLaComputadora.juega}>
-              <VistaDePartida partida={partida} alCambiar={cambiar} />
-            </Bloqueable>
-            <AvisoDeLaComputadora turno={turnoDeLaComputadora} partida={partida} />
+            {/* Entre turnos de personas, el telón tapa la partida: debajo no se dibuja nada secreto. */}
+            {telon.tapa ? (
+              <Telon jugador={partida.jugadorEnTurno()} alLevantar={telon.levantar} />
+            ) : (
+              <>
+                {/* En el turno de la computadora, las personas miran pero no pueden actuar ni ver lo secreto. */}
+                <Bloqueable bloqueado={turnoDeLaComputadora.juega}>
+                  <VistaDePartida
+                    partida={partida}
+                    alCambiar={cambiar}
+                    secretosALaVista={!turnoDeLaComputadora.juega}
+                  />
+                </Bloqueable>
+                <AvisoDeLaComputadora turno={turnoDeLaComputadora} partida={partida} />
+              </>
+            )}
+            {partida.ganador() && (
+              <Victoria partida={partida} computadoras={computadoras} alEmpezarOtra={() => setCreandoOtra(true)} />
+            )}
           </SiFalla>
         </>
       ) : (

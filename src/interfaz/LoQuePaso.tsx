@@ -136,6 +136,8 @@ function Jugador({ color, nombreDe }: { color: Color; nombreDe: (color: Color) =
 
 function porQueGano(motivo: MotivoDeVictoria): string {
   switch (motivo.tipo) {
+    case "objetivoSecreto":
+      return "Cumplió su objetivo secreto.";
     case "objetivoComun":
       return "Cumplió el objetivo común: ocupar 30 países.";
   }

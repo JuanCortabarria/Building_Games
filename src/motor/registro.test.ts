@@ -148,6 +148,20 @@ describe("el registro de la partida", () => {
     });
   });
 
+  it("la victoria por objetivo secreto anota que ganó por su objetivo secreto", () => {
+    // Ana tiene que destruir a Beto, que solo tiene Chile, y lo conquista.
+    const partida = turnoDeAna({
+      paises: { Ana: ["Argentina"], Beto: ["Chile"] },
+      ejercitos: { Argentina: 5 },
+      dados: [6, 6, 6, 1],
+      objetivos: { Ana: { tipo: "destruccion", color: "rojo", victima: "rojo" } },
+    });
+
+    const despues = partidaDe(partida.aplicar({ tipo: "atacar", desde: "Argentina", hacia: "Chile" }));
+
+    expect(ultimoEvento(despues)).toMatchObject({ tipo: "gano", color: "azul", motivo: { tipo: "objetivoSecreto" } });
+  });
+
   it("mover al país conquistado anota desde dónde, hacia dónde y cuántos ejércitos pasaron en total", () => {
     const conquistada = partidaDe(
       turnoDeAna({ dados: [6, 6, 6, 1, 1, 1] }).aplicar({ tipo: "atacar", desde: "Argentina", hacia: "Chile" }),

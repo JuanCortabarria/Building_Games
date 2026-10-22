@@ -3,6 +3,14 @@ import { CONTINENTES, PAISES, PARES_LIMITROFES, type NombreDeContinente, type No
 import { compararDados, cuantosPerdio } from "./dados";
 import { anotarAccion, anotarQueEmpezoLaRonda, type Evento } from "./registro";
 import {
+  cumpleOcupacion,
+  descripcionDeDestruccion,
+  OBJETIVOS,
+  OCUPACIONES,
+  type NumeroDeOcupacion,
+  type Objetivo,
+} from "./objetivos";
+import {
   conquistasParaRecibirTarjeta,
   EJERCITOS_POR_TARJETA,
   formanCanje,
@@ -19,6 +27,22 @@ export type Color = (typeof COLORES)[number];
 export const PAISES_PARA_GANAR = 30;
 
 export const CANTIDAD_DE_JUGADORES = { minima: 2, maxima: 6 } as const;
+
+/**
+ * Con objetivos secretos, cada jugador gana si cumple el suyo o el objetivo común. Solo con el objetivo
+ * común, gana el primero que ocupa 30 países.
+ */
+export type ModoDePartida = "objetivosSecretos" | "objetivoComun";
+
+/**
+ * El objetivo secreto de un jugador, tal como queda en la partida. Uno de destrucción guarda a quién
+ * apunta: el color de la tarjeta, o el jugador siguiente en el orden de juego si ese color es el propio
+ * o no está en juego. Si a la víctima la destruye otro jugador, deja de apuntar a nadie (`null`) y al
+ * jugador le queda solo el objetivo común.
+ */
+export type ObjetivoAsignado =
+  | Extract<Objetivo, { tipo: "ocupacion" }>
+  | (Extract<Objetivo, { tipo: "destruccion" }> & { victima: Color | null });
 
 export interface DatosDeJugador {
   nombre: string;
@@ -49,6 +73,8 @@ export interface EstadoDePartida {
   conquistaPendiente: { desde: NombreDePais; hacia: NombreDePais } | null;
   /** El color del jugador que ganó, o nada si la partida sigue. Con un ganador no se juega más. */
   ganador: Color | null;
+  /** Qué objetivo cumplió el ganador, o nada si la partida sigue. */
+  motivoDeLaVictoria: "objetivoSecreto" | "objetivoComun" | null;
   /** Las tarjetas de país por recibir, boca abajo: la primera es la que se recibe. */
   mazo: NombreDePais[];
   /** Las tarjetas canjeadas. Cuando el mazo se acaba, se mezclan y pasan a ser el mazo. */
@@ -63,6 +89,10 @@ export interface EstadoDePartida {
   tarjetaRecibida: { color: Color; pais: NombreDePais; ejercitos: number } | null;
   /** Los últimos eventos de la partida, del más viejo al más nuevo (ver `registro.ts`). */
   registro: Evento[];
+  /** Si se juega con objetivos secretos o solo con el objetivo común. */
+  modo: ModoDePartida;
+  /** El objetivo secreto de cada jugador. Solo con el objetivo común, no hay ninguno. */
+  objetivos: Partial<Record<Color, ObjetivoAsignado>>;
 }
 
 /** El resultado de una tirada de ataque. */
@@ -159,9 +189,26 @@ export interface Partida {
   tarjetasEnElMazo(): number;
   /** Los últimos eventos de la partida, del más viejo al más nuevo. */
   registro(): readonly Evento[];
+  /** Si se juega con objetivos secretos o solo con el objetivo común. */
+  modo(): ModoDePartida;
+  /** El objetivo secreto de un jugador, o nada si se juega solo con el objetivo común. */
+  objetivoDe(color: Color): ObjetivoDeJugador | null;
+  /** Por qué ganó el ganador, o nada si la partida sigue. */
+  motivoDeLaVictoria(): MotivoDeLaVictoria | null;
   /** Aplica una acción y devuelve la partida que queda, o un error que explica qué regla la impide. */
   aplicar(accion: Accion): ResultadoDePartida;
 }
+
+/**
+ * El objetivo secreto de un jugador, con su descripción. Uno de destrucción dice a quién apunta hoy:
+ * `victima` es nada si a quien tenía que destruir lo destruyó otro, y entonces le queda solo el objetivo común.
+ */
+export type ObjetivoDeJugador =
+  | { tipo: "ocupacion"; numero: NumeroDeOcupacion; descripcion: string }
+  | { tipo: "destruccion"; color: Color; descripcion: string; victima: DatosDeJugador | null };
+
+/** El ganador cumplió su objetivo secreto, que se muestra, o el objetivo común. */
+export type MotivoDeLaVictoria = { tipo: "objetivoSecreto"; objetivo: ObjetivoDeJugador } | { tipo: "objetivoComun" };
 
 export interface TarjetaRecibida {
   jugador: DatosDeJugador;
@@ -183,6 +230,7 @@ export function coloresDisponibles(jugadores: readonly { color: Color }[]): Colo
 export function crearPartida(
   jugadores: readonly DatosDeJugador[],
   azar: FuenteDeAzar,
+  { modo = "objetivosSecretos" }: { modo?: ModoDePartida } = {},
 ): ResultadoDePartida {
   const { minima, maxima } = CANTIDAD_DE_JUGADORES;
   if (jugadores.length < minima || jugadores.length > maxima) {
@@ -207,6 +255,7 @@ export function crearPartida(
     paises[pais] = { ocupante: ordenDeJuego[i % ordenDeJuego.length]!.color, ejercitos: 1 };
   });
   const mazo = azar.mezclarTarjetas(PAISES.map((pais) => pais.nombre));
+  const objetivos = modo === "objetivosSecretos" ? repartirObjetivos(ordenDeJuego, azar.mezclarObjetivos(OBJETIVOS)) : {};
   const estado = empezarTurno({
     jugadores: ordenDeJuego,
     paises,
@@ -219,6 +268,7 @@ export function crearPartida(
     reagrupoEnEsteTurno: false,
     conquistaPendiente: null,
     ganador: null,
+    motivoDeLaVictoria: null,
     mazo,
     descarte: [],
     tarjetas: Object.fromEntries(ordenDeJuego.map(({ color }) => [color, []])),
@@ -226,8 +276,48 @@ export function crearPartida(
     conquistasEnEsteTurno: 0,
     tarjetaRecibida: null,
     registro: [],
+    modo,
+    objetivos,
   });
   return { ok: true, partida: partidaDesde(anotarQueEmpezoLaRonda(estado), azar) };
+}
+
+/**
+ * Cada jugador, en el orden de juego, recibe el siguiente objetivo mezclado. Uno de destrucción apunta
+ * al color de la tarjeta si está en juego y no es el propio; si no, al jugador de la derecha, que en la
+ * aplicación es el siguiente en el orden de juego.
+ */
+function repartirObjetivos(
+  ordenDeJuego: readonly DatosDeJugador[],
+  mezclados: readonly Objetivo[],
+): EstadoDePartida["objetivos"] {
+  const enJuego = (color: Color) => ordenDeJuego.some((jugador) => jugador.color === color);
+  return Object.fromEntries(
+    ordenDeJuego.map(({ color }, i): [Color, ObjetivoAsignado] => {
+      const objetivo = mezclados[i]!;
+      if (objetivo.tipo === "ocupacion") return [color, objetivo];
+      const victima =
+        objetivo.color !== color && enJuego(objetivo.color)
+          ? objetivo.color
+          : ordenDeJuego[(i + 1) % ordenDeJuego.length]!.color;
+      return [color, { ...objetivo, victima }];
+    }),
+  );
+}
+
+function objetivoDeJugador(estado: EstadoDePartida, color: Color): ObjetivoDeJugador | null {
+  const objetivo = estado.objetivos[color];
+  if (objetivo === undefined) return null;
+  if (objetivo.tipo === "ocupacion") {
+    return { ...objetivo, descripcion: OCUPACIONES[objetivo.numero].descripcion };
+  }
+  const { victima } = objetivo;
+  return {
+    tipo: "destruccion",
+    color: objetivo.color,
+    descripcion: descripcionDeDestruccion(objetivo.color),
+    victima: victima === null ? null : { nombre: nombreDe(estado, victima), color: victima },
+  };
 }
 
 /**
@@ -289,6 +379,13 @@ function partidaDesde(estado: EstadoDePartida, azar: FuenteDeAzar): Partida {
     },
     tarjetasEnElMazo: () => estado.mazo.length,
     registro: () => structuredClone(estado.registro),
+    modo: () => estado.modo,
+    objetivoDe: (color) => objetivoDeJugador(estado, color),
+    motivoDeLaVictoria: () => {
+      if (estado.ganador === null || estado.motivoDeLaVictoria === null) return null;
+      if (estado.motivoDeLaVictoria === "objetivoComun") return { tipo: "objetivoComun" };
+      return { tipo: "objetivoSecreto", objetivo: objetivoDeJugador(estado, estado.ganador)! };
+    },
     destinosDeReagrupe: (desde) => [...alcanzablesPorPaisesPropios(estado, desde)].filter((pais) => pais !== desde),
     aplicar: (accion) => {
       const resultado = aplicar(estado, accion, azar);
@@ -449,8 +546,9 @@ function atacar(
     : estado.tarjetas;
   // Solo una conquista cambia quién ocupa cada país, así que es el único momento en que alguien puede ganar.
   // Gana en el acto: no se juega más, ni siquiera el movimiento al país conquistado.
-  const suyos = PAISES.filter((pais) => paises[pais.nombre].ocupante === enTurno.color).length;
-  const gana = conquista && suyos >= PAISES_PARA_GANAR;
+  const objetivos = destruido ? sinVictima(estado.objetivos, destino.ocupante, enTurno.color) : estado.objetivos;
+  const motivo = conquista ? motivoParaGanar({ ...estado, paises, objetivos }, enTurno.color) : null;
+  const gana = motivo !== null;
   // Si en el origen quedó 1 solo ejército, el que entró al conquistar es el único que se podía mover:
   // no hay nada que elegir y el turno sigue.
   const hayQueElegir = conquista && !gana && quedanEnOrigen.ejercitos > 1;
@@ -460,9 +558,11 @@ function atacar(
       ...estado,
       paises,
       tarjetas,
+      objetivos,
       conquistaPendiente: hayQueElegir ? { desde, hacia } : null,
       conquistasEnEsteTurno: estado.conquistasEnEsteTurno + (conquista ? 1 : 0),
       ganador: gana ? enTurno.color : null,
+      motivoDeLaVictoria: motivo,
       azar: azar.estado(),
       ultimaTirada: {
         atacante: { pais: desde, color: origen.ocupante, dados: dadosDelAtacante, perdidos: perdidosDelAtacante },
@@ -470,6 +570,41 @@ function atacar(
       },
     },
   };
+}
+
+/**
+ * Qué objetivo cumple un jugador con los países que ocupa, o nada si no cumple ninguno. Si cumple los dos,
+ * gana por su objetivo secreto.
+ */
+function motivoParaGanar(estado: EstadoDePartida, color: Color): EstadoDePartida["motivoDeLaVictoria"] {
+  if (cumpleSuObjetivoSecreto(estado, color)) return "objetivoSecreto";
+  const suyos = PAISES.filter((pais) => estado.paises[pais.nombre].ocupante === color).length;
+  return suyos >= PAISES_PARA_GANAR ? "objetivoComun" : null;
+}
+
+/**
+ * Los objetivos después de que `destructor` destruyó a `destruido`: a los demás que tenían que destruirlo
+ * les queda solo el objetivo común. El del destructor sigue igual, porque con eso lo cumple.
+ */
+function sinVictima(
+  objetivos: EstadoDePartida["objetivos"],
+  destruido: Color,
+  destructor: Color,
+): EstadoDePartida["objetivos"] {
+  return Object.fromEntries(
+    (Object.entries(objetivos) as [Color, ObjetivoAsignado][]).map(([color, objetivo]) =>
+      objetivo.tipo === "destruccion" && objetivo.victima === destruido && color !== destructor
+        ? [color, { ...objetivo, victima: null }]
+        : [color, objetivo],
+    ),
+  );
+}
+
+function cumpleSuObjetivoSecreto(estado: EstadoDePartida, color: Color): boolean {
+  const objetivo = estado.objetivos[color];
+  if (objetivo === undefined) return false;
+  if (objetivo.tipo === "destruccion") return objetivo.victima !== null && !ocupaAlgunPais(estado.paises, objetivo.victima);
+  return cumpleOcupacion(objetivo.numero, (pais) => estado.paises[pais].ocupante === color);
 }
 
 /**

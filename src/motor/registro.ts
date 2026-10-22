@@ -40,8 +40,8 @@ export type DatosDelEvento =
   /** Ganó la partida. */
   | { tipo: "gano"; motivo: MotivoDeVictoria };
 
-/** Por qué ganó el ganador. */
-export type MotivoDeVictoria = { tipo: "objetivoComun" };
+/** Por qué ganó el ganador: cumplió su objetivo secreto o el objetivo común. */
+export type MotivoDeVictoria = { tipo: "objetivoSecreto" } | { tipo: "objetivoComun" };
 
 /** Le suma al estado que dejó una acción los eventos que la cuentan. */
 export function anotarAccion(antes: EstadoDePartida, accion: Accion, despues: EstadoDePartida): EstadoDePartida {
@@ -99,9 +99,9 @@ function mismaRonda(una: Ronda, otra: Ronda): boolean {
   return una.tipo === otra.tipo && una.inicial === otra.inicial && una.numero === otra.numero;
 }
 
-/** Por qué ganó el ganador de la partida. Por ahora la única forma de ganar es el objetivo común. */
-function motivoDeVictoria(_estado: EstadoDePartida): MotivoDeVictoria {
-  return { tipo: "objetivoComun" };
+/** Por qué ganó el ganador de la partida. */
+function motivoDeVictoria(estado: EstadoDePartida): MotivoDeVictoria {
+  return { tipo: estado.motivoDeLaVictoria === "objetivoSecreto" ? "objetivoSecreto" : "objetivoComun" };
 }
 
 function anotar(estado: EstadoDePartida, ronda: Ronda, color: Color, eventos: readonly DatosDelEvento[]): EstadoDePartida {

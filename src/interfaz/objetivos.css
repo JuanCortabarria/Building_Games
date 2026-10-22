@@ -1,0 +1,215 @@
+/* El objetivo secreto, el telón entre turnos y la pantalla de victoria. */
+
+.objetivo details {
+  display: inline-block;
+  margin: 8px 0;
+  padding: 6px 12px;
+  border: 1px solid #0002;
+  border-radius: 8px;
+  background: #fffdf7;
+}
+
+.objetivo summary {
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.tarjeta-de-objetivo {
+  margin-top: 8px;
+  padding: 10px 14px;
+  border-left: 4px solid #8a6d1d;
+  background: #fbf3dc;
+  border-radius: 4px;
+  max-width: 60ch;
+}
+
+.tarjeta-de-objetivo p {
+  margin: 4px 0;
+}
+
+.descripcion-del-objetivo {
+  font-style: italic;
+}
+
+.objetivo-comun,
+.a-donde-apunta {
+  font-size: 0.92em;
+  color: #444;
+}
+
+/* El telón tapa toda la pantalla con el color del jugador que sigue. */
+.telon {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  margin: 0;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  border: none;
+  color: var(--texto-del-jugador);
+  background:
+    radial-gradient(circle at 50% 40%, #fff3 0, transparent 60%),
+    var(--color-del-jugador);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+
+.telon:focus-visible {
+  outline: 4px solid #fff;
+  outline-offset: -12px;
+}
+
+.telon-muestra-de-color {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 6px solid currentColor;
+  background: var(--color-del-jugador);
+  box-shadow: 0 6px 18px #0005;
+}
+
+.telon-titulo {
+  font-size: clamp(28px, 6vw, 52px);
+}
+
+.telon-indicacion {
+  font-size: clamp(18px, 3vw, 24px);
+  padding: 8px 18px;
+  border: 2px solid currentColor;
+  border-radius: 999px;
+}
+
+.telon-aviso {
+  opacity: 0.85;
+  max-width: 40ch;
+}
+
+/* La victoria: un cartel sobre el tablero, con el color del ganador arriba. */
+.fondo-de-la-victoria {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: #0008;
+}
+
+.victoria {
+  width: min(640px, 100%);
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  border-radius: 16px;
+  background: #fffdf7;
+  box-shadow: 0 20px 60px #0007;
+  animation: aparece-la-victoria 0.35s ease-out;
+}
+
+.victoria-encabezado {
+  padding: 22px 24px 18px;
+  text-align: center;
+  color: var(--texto-del-jugador);
+  background:
+    radial-gradient(circle at 50% 0, #fff4 0, transparent 70%),
+    var(--color-del-jugador);
+}
+
+.victoria-encabezado h2 {
+  margin: 4px 0;
+  font-size: clamp(28px, 5vw, 40px);
+}
+
+.trofeo {
+  display: inline-block;
+  font-size: 56px;
+  animation: salta-el-trofeo 1.4s ease-in-out infinite;
+}
+
+.motivo {
+  margin: 6px 0 0;
+  font-size: 1.1em;
+}
+
+.victoria h3 {
+  margin: 18px 24px 8px;
+}
+
+.objetivos-de-todos {
+  list-style: none;
+  margin: 0;
+  padding: 0 24px;
+}
+
+.objetivos-de-todos li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
+.objetivos-de-todos li .muestra-de-color {
+  margin-top: 4px;
+  flex: none;
+}
+
+.objetivos-de-todos li.es-ganador {
+  background: #fbf3dc;
+}
+
+.objetivos-de-todos p {
+  margin: 2px 0;
+}
+
+.victoria-botones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 12px 24px 20px;
+}
+
+.volver-a-la-victoria {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 15;
+  box-shadow: 0 4px 14px #0004;
+}
+
+@keyframes aparece-la-victoria {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+
+@keyframes salta-el-trofeo {
+  50% {
+    transform: translateY(-6px) rotate(-6deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .victoria,
+  .trofeo {
+    animation: none;
+  }
+}
+
+/* El modo de partida, al crearla. */
+.modo-de-partida {
+  margin: 12px 0;
+  border: 1px solid #0002;
+  border-radius: 8px;
+}
+
+.modo-de-partida label {
+  display: block;
+  margin: 4px 0;
+}

@@ -95,3 +95,14 @@ _Avoid_: Matar, eliminar (como acción de otro jugador)
 
 **Objetivo común**:
 Ocupar 30 países. Es una condición de victoria que vale para todos los jugadores.
+
+**Objetivo secreto**:
+Condición de victoria propia de cada jugador, recibida al azar al empezar la partida entre 15: 9 de ocupación (continentes enteros y cantidades mínimas de países de otros) y 6 de destrucción, uno por color. Un objetivo de destrucción apunta a una víctima: el jugador de ese color, o el siguiente en el orden de juego si el color es el propio o no está en juego; si a la víctima la destruye otro jugador, al dueño del objetivo le queda solo el objetivo común. Quien cumple su objetivo secreto o el común después de una conquista gana en el acto.
+_Avoid_: Misión, meta, carta de objetivo
+
+**Modo de partida**:
+Cómo se gana una partida, elegido al crearla: con objetivos secretos (cada jugador gana con el suyo o con el objetivo común) o solo con el objetivo común.
+
+**Telón**:
+Pantalla que tapa la partida entre turnos de personas, cuando se juega con objetivos secretos y hay al menos 2 personas, para pasarse la pantalla sin ver las tarjetas ni el objetivo del otro. Se levanta tocándola.
+_Avoid_: Cortina, pantalla de espera
