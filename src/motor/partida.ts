@@ -1,5 +1,14 @@
 import type { EstadoDeAzar, FuenteDeAzar } from "./azar";
 import { CONTINENTES, PAISES, PARES_LIMITROFES, type NombreDeContinente, type NombreDePais } from "./mapa";
+import {
+  conquistasParaRecibirTarjeta,
+  EJERCITOS_POR_TARJETA,
+  formanCanje,
+  SIMBOLO_DE_TARJETA,
+  TARJETAS_POR_CANJE,
+  valorDelCanje,
+  type Simbolo,
+} from "./tarjetas";
 
 export const COLORES = ["azul", "rojo", "negro", "amarillo", "verde", "magenta"] as const;
 export type Color = (typeof COLORES)[number];
@@ -38,6 +47,18 @@ export interface EstadoDePartida {
   conquistaPendiente: { desde: NombreDePais; hacia: NombreDePais } | null;
   /** El color del jugador que ganó, o nada si la partida sigue. Con un ganador no se juega más. */
   ganador: Color | null;
+  /** Las tarjetas de país por recibir, boca abajo: la primera es la que se recibe. */
+  mazo: NombreDePais[];
+  /** Las tarjetas canjeadas. Cuando el mazo se acaba, se mezclan y pasan a ser el mazo. */
+  descarte: NombreDePais[];
+  /** Las tarjetas de país que tiene cada jugador. */
+  tarjetas: Partial<Record<Color, NombreDePais[]>>;
+  /** Cuántos canjes hizo cada jugador en la partida. */
+  canjes: Partial<Record<Color, number>>;
+  /** Cuántos países conquistó el jugador en turno en este turno. */
+  conquistasEnEsteTurno: number;
+  /** La tarjeta que recibió el último que pasó el turno, y cuántos ejércitos le dio, o nada si no recibió. */
+  tarjetaRecibida: { color: Color; pais: NombreDePais; ejercitos: number } | null;
 }
 
 /** El resultado de una tirada de ataque. */
@@ -88,6 +109,8 @@ export type Accion =
   /** Cuántos ejércitos pasan, en total, del país de origen al que se acaba de conquistar. */
   | { tipo: "moverAlConquistado"; cantidad: number }
   | { tipo: "reagrupar"; desde: NombreDePais; hacia: NombreDePais; cantidad: number }
+  /** Entrega 3 tarjetas de país a cambio de ejércitos, en el turno de incorporación. */
+  | { tipo: "canjear"; tarjetas: readonly NombreDePais[] }
   | { tipo: "pasarTurno" };
 
 export interface ConquistaPendiente {
@@ -116,12 +139,34 @@ export interface Partida {
   conquistaPendiente(): ConquistaPendiente | null;
   /** El jugador que ganó, o nada si la partida sigue. */
   ganador(): DatosDeJugador | null;
-  /** Aplica una acción y devuelve la partida que queda, o un error que explica qué regla la impide. */
   /** Si el jugador en turno ya reagrupó en este turno, y por eso ya no puede atacar. */
   reagrupoEnEsteTurno(): boolean;
   /** Los países a los que se puede reagrupar desde uno: los de su ocupante a los que se llega pasando solo por países suyos. */
   destinosDeReagrupe(desde: NombreDePais): readonly NombreDePais[];
+  /** Las tarjetas de país que tiene un jugador, en el orden en que las recibió. */
+  tarjetasDe(color: Color): readonly TarjetaDePais[];
+  /** Cuántos canjes hizo un jugador en la partida. */
+  canjesDe(color: Color): number;
+  /** Cuántos ejércitos le daría a un jugador su próximo canje. */
+  valorDelProximoCanje(color: Color): number;
+  /** La tarjeta que recibió el último jugador que pasó el turno, o nada si no recibió. */
+  tarjetaRecibida(): TarjetaRecibida | null;
+  /** Cuántas tarjetas quedan en el mazo, sin contar el descarte. */
+  tarjetasEnElMazo(): number;
+  /** Aplica una acción y devuelve la partida que queda, o un error que explica qué regla la impide. */
   aplicar(accion: Accion): ResultadoDePartida;
+}
+
+export interface TarjetaRecibida {
+  jugador: DatosDeJugador;
+  tarjeta: TarjetaDePais;
+  /** Los ejércitos que se pusieron en el país de la tarjeta: 2 si lo ocupa quien la recibió, y si no, 0. */
+  ejercitos: number;
+}
+
+export interface TarjetaDePais {
+  pais: NombreDePais;
+  simbolo: Simbolo;
 }
 
 /** Los colores que todavía no eligió ninguno de los jugadores dados. */
@@ -155,6 +200,7 @@ export function crearPartida(
   azar.mezclarPaises(PAISES.map((pais) => pais.nombre)).forEach((pais, i) => {
     paises[pais] = { ocupante: ordenDeJuego[i % ordenDeJuego.length]!.color, ejercitos: 1 };
   });
+  const mazo = azar.mezclarTarjetas(PAISES.map((pais) => pais.nombre));
   const estado = empezarTurno({
     jugadores: ordenDeJuego,
     paises,
@@ -167,6 +213,12 @@ export function crearPartida(
     reagrupoEnEsteTurno: false,
     conquistaPendiente: null,
     ganador: null,
+    mazo,
+    descarte: [],
+    tarjetas: Object.fromEntries(ordenDeJuego.map(({ color }) => [color, []])),
+    canjes: Object.fromEntries(ordenDeJuego.map(({ color }) => [color, 0])),
+    conquistasEnEsteTurno: 0,
+    tarjetaRecibida: null,
   });
   return { ok: true, partida: partidaDesde(estado, azar) };
 }
@@ -220,12 +272,25 @@ function partidaDesde(estado: EstadoDePartida, azar: FuenteDeAzar): Partida {
       return ganador ? { ...ganador } : null;
     },
     reagrupoEnEsteTurno: () => estado.reagrupoEnEsteTurno,
+    tarjetasDe: (color) => tarjetasDe(estado, color).map(tarjetaDePais),
+    canjesDe: (color) => canjesDe(estado, color),
+    valorDelProximoCanje: (color) => valorDelCanje(canjesDe(estado, color) + 1),
+    tarjetaRecibida: () => {
+      if (estado.tarjetaRecibida === null) return null;
+      const { color, pais, ejercitos } = estado.tarjetaRecibida;
+      return { jugador: { nombre: nombreDe(estado, color), color }, tarjeta: tarjetaDePais(pais), ejercitos };
+    },
+    tarjetasEnElMazo: () => estado.mazo.length,
     destinosDeReagrupe: (desde) => [...alcanzablesPorPaisesPropios(estado, desde)].filter((pais) => pais !== desde),
     aplicar: (accion) => {
       const resultado = aplicar(estado, accion, azar);
       return resultado.ok ? { ok: true, partida: partidaDesde(resultado.estado, azar) } : resultado;
     },
   };
+}
+
+function tarjetaDePais(pais: NombreDePais): TarjetaDePais {
+  return { pais, simbolo: SIMBOLO_DE_TARJETA[pais] };
 }
 
 function limitrofesDe(pais: NombreDePais): NombreDePais[] {
@@ -249,7 +314,8 @@ function aplicar(estado: EstadoDePartida, accion: Accion, azar: FuenteDeAzar): R
   if (accion.tipo === "incorporar") return incorporar(estado, accion);
   if (accion.tipo === "atacar") return atacar(estado, accion, azar.reanudar(estado.azar));
   if (accion.tipo === "reagrupar") return reagrupar(estado, accion);
-  return pasarTurno(estado);
+  if (accion.tipo === "canjear") return canjear(estado, accion);
+  return pasarTurno(estado, azar);
 }
 
 function incorporar(estado: EstadoDePartida, { pais, cantidad }: { pais: NombreDePais; cantidad: number }): ResultadoDeAccion {
@@ -367,6 +433,15 @@ function atacar(
     quedanEnDestino = { ocupante: enTurno.color, ejercitos: 1 };
   }
   const paises = { ...estado.paises, [desde]: quedanEnOrigen, [hacia]: quedanEnDestino };
+  // Quien destruye a un jugador se queda con sus tarjetas.
+  const destruido = conquista && !ocupaAlgunPais(paises, destino.ocupante);
+  const tarjetas = destruido
+    ? {
+        ...estado.tarjetas,
+        [enTurno.color]: [...tarjetasDe(estado, enTurno.color), ...tarjetasDe(estado, destino.ocupante)],
+        [destino.ocupante]: [],
+      }
+    : estado.tarjetas;
   // Solo una conquista cambia quién ocupa cada país, así que es el único momento en que alguien puede ganar.
   // Gana en el acto: no se juega más, ni siquiera el movimiento al país conquistado.
   const suyos = PAISES.filter((pais) => paises[pais.nombre].ocupante === enTurno.color).length;
@@ -379,7 +454,9 @@ function atacar(
     estado: {
       ...estado,
       paises,
+      tarjetas,
       conquistaPendiente: hayQueElegir ? { desde, hacia } : null,
+      conquistasEnEsteTurno: estado.conquistasEnEsteTurno + (conquista ? 1 : 0),
       ganador: gana ? enTurno.color : null,
       azar: azar.estado(),
       ultimaTirada: {
@@ -511,7 +588,7 @@ function deMayorAMenor(dados: readonly number[]): number[] {
   return [...dados].sort((a, b) => b - a);
 }
 
-function pasarTurno(estado: EstadoDePartida): ResultadoDeAccion {
+function pasarTurno(estado: EstadoDePartida, azar: FuenteDeAzar): ResultadoDeAccion {
   const enTurno = jugadorEnTurno(estado);
   const quedan = totalPorIncorporar(estado.ejercitosPorIncorporar);
   if (quedan > 0) {
@@ -520,11 +597,84 @@ function pasarTurno(estado: EstadoDePartida): ResultadoDeAccion {
       error: `${enTurno.nombre} no puede pasar el turno: le ${quedan === 1 ? "queda 1 ejército" : `quedan ${quedan} ejércitos`} por poner.`,
     };
   }
-  const siguiente = siguienteEnLaRonda(estado);
-  if (siguiente !== undefined) return { ok: true, estado: empezarTurno({ ...estado, turno: siguiente }) };
-  const ronda = siguienteRonda(estado.ronda);
-  const abre = quienAbre(estado, ronda);
-  return { ok: true, estado: empezarTurno({ ...estado, ronda, abrioLaRonda: abre, turno: abre }) };
+  const terminado = recibirTarjeta(estado, azar);
+  const siguiente = siguienteEnLaRonda(terminado);
+  if (siguiente !== undefined) return { ok: true, estado: empezarTurno({ ...terminado, turno: siguiente }) };
+  const ronda = siguienteRonda(terminado.ronda);
+  const abre = quienAbre(terminado, ronda);
+  return { ok: true, estado: empezarTurno({ ...terminado, ronda, abrioLaRonda: abre, turno: abre }) };
+}
+
+/**
+ * Al terminar su turno de ataque, el jugador en turno recibe la primera tarjeta del mazo si conquistó
+ * lo suficiente. La tarjeta recibida queda a la vista hasta que se vuelve a pasar el turno.
+ */
+function recibirTarjeta(alTerminar: EstadoDePartida, azar: FuenteDeAzar): EstadoDePartida {
+  let estado: EstadoDePartida = { ...alTerminar, tarjetaRecibida: null };
+  const { color } = jugadorEnTurno(estado);
+  const hacenFalta = conquistasParaRecibirTarjeta(canjesDe(estado, color));
+  if (estado.ronda.tipo !== "ataque" || estado.conquistasEnEsteTurno < hacenFalta) return estado;
+  if (estado.mazo.length === 0) estado = mezclarElDescarte(estado, azar.reanudar(estado.azar));
+  const [recibida, ...mazo] = estado.mazo;
+  // Sin tarjetas en el mazo ni en el descarte, no se recibe tarjeta.
+  if (recibida === undefined) return estado;
+  const tarjetas = { ...estado.tarjetas, [color]: [...tarjetasDe(estado, color), recibida] };
+  // Si ocupa el país de la tarjeta, pone 2 ejércitos ahí. Si no, esa tarjeta ya no da ejércitos.
+  const pais = estado.paises[recibida];
+  const ejercitos = pais.ocupante === color ? EJERCITOS_POR_TARJETA : 0;
+  return {
+    ...estado,
+    mazo,
+    tarjetas,
+    paises: { ...estado.paises, [recibida]: { ...pais, ejercitos: pais.ejercitos + ejercitos } },
+    tarjetaRecibida: { color, pais: recibida, ejercitos },
+  };
+}
+
+/** Entrega 3 tarjetas del jugador en turno, que van al descarte, y le suma los ejércitos del canje. */
+function canjear(estado: EstadoDePartida, { tarjetas }: { tarjetas: readonly NombreDePais[] }): ResultadoDeAccion {
+  const { nombre, color } = jugadorEnTurno(estado);
+  if (estado.ronda.inicial) return { ok: false, error: "En las rondas iniciales no se canjean tarjetas." };
+  if (estado.ronda.tipo !== "incorporacion") {
+    return { ok: false, error: "Las tarjetas se canjean en el turno de incorporación, y esta es una ronda de ataque." };
+  }
+  if (tarjetas.length !== TARJETAS_POR_CANJE || new Set(tarjetas).size !== TARJETAS_POR_CANJE) {
+    return { ok: false, error: `Un canje es de ${TARJETAS_POR_CANJE} tarjetas distintas.` };
+  }
+  const ajena = tarjetas.find((pais) => !tarjetasDe(estado, color).includes(pais));
+  if (ajena !== undefined) return { ok: false, error: `${nombre} no tiene la tarjeta de ${ajena}.` };
+  if (!formanCanje(tarjetas)) {
+    return {
+      ok: false,
+      error: `${tarjetas.slice(0, -1).join(", ")} y ${tarjetas.at(-1)} no forman canje: tienen que ser ${TARJETAS_POR_CANJE} del mismo símbolo o ${TARJETAS_POR_CANJE} de símbolos distintos, y el comodín vale por cualquiera.`,
+    };
+  }
+  const canjes = canjesDe(estado, color) + 1;
+  const { generales, porContinente } = estado.ejercitosPorIncorporar;
+  return {
+    ok: true,
+    estado: {
+      ...estado,
+      tarjetas: { ...estado.tarjetas, [color]: tarjetasDe(estado, color).filter((pais) => !tarjetas.includes(pais)) },
+      descarte: [...estado.descarte, ...tarjetas],
+      canjes: { ...estado.canjes, [color]: canjes },
+      ejercitosPorIncorporar: { generales: generales + valorDelCanje(canjes), porContinente },
+    },
+  };
+}
+
+/** El descarte, mezclado, pasa a ser el mazo. Sin descarte no hay nada que mezclar. */
+function mezclarElDescarte(estado: EstadoDePartida, azar: FuenteDeAzar): EstadoDePartida {
+  if (estado.descarte.length === 0) return estado;
+  return { ...estado, mazo: azar.mezclarTarjetas(estado.descarte), descarte: [], azar: azar.estado() };
+}
+
+function canjesDe(estado: EstadoDePartida, color: Color): number {
+  return estado.canjes[color] ?? 0;
+}
+
+function tarjetasDe(estado: EstadoDePartida, color: Color): NombreDePais[] {
+  return estado.tarjetas[color] ?? [];
 }
 
 /**
@@ -537,6 +687,7 @@ function empezarTurno(estado: EstadoDePartida): EstadoDePartida {
     ejercitosPorIncorporar: ejercitosDelTurno(estado),
     ultimaTirada: null,
     reagrupoEnEsteTurno: false,
+    conquistasEnEsteTurno: 0,
   };
 }
 
@@ -569,8 +720,11 @@ function quienAbre(estado: EstadoDePartida, ronda: Ronda): number {
 
 /** Un jugador está destruido cuando no le queda ningún país. */
 function estaDestruido(estado: EstadoDePartida, posicion: number): boolean {
-  const { color } = estado.jugadores[posicion]!;
-  return !PAISES.some((pais) => estado.paises[pais.nombre].ocupante === color);
+  return !ocupaAlgunPais(estado.paises, estado.jugadores[posicion]!.color);
+}
+
+function ocupaAlgunPais(paises: EstadoDePartida["paises"], color: Color): boolean {
+  return PAISES.some((pais) => paises[pais.nombre].ocupante === color);
 }
 
 function siguienteRonda({ tipo, inicial, numero }: Ronda): Ronda {

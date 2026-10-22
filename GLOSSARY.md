@@ -46,7 +46,7 @@ Vuelta completa en la que cada jugador juega un turno. Las rondas son de ataque 
 _Avoid_: Vuelta
 
 **Ronda de ataque**:
-Ronda en la que, en su turno, cada jugador puede atacar, después reagrupar y después pedir tarjeta.
+Ronda en la que, en su turno, cada jugador puede atacar y después reagrupar. Al pasar el turno recibe una tarjeta de país si conquistó lo suficiente.
 
 **Ronda de incorporación**:
 Ronda en la que, en su turno, cada jugador pone ejércitos nuevos en sus países.
@@ -58,10 +58,31 @@ Cada una de las dos rondas de incorporación con que empieza una partida, de 5 y
 La parte de una ronda que le corresponde a un jugador.
 _Avoid_: Jugada, mano
 
+## Tarjetas
+
+**Tarjeta de país**:
+Cada una de las 50 tarjetas del juego, una por país, con un símbolo: galeón, cañón, globo o comodín. Un jugador recibe una al terminar su turno de ataque si conquistó al menos un país en ese turno (al menos dos después de su tercer canje); si ocupa el país de la tarjeta, se ponen 2 ejércitos ahí.
+_Avoid_: Carta, naipe
+
+**Símbolo**:
+El dibujo de una tarjeta de país: galeón, cañón, globo o comodín. Hay 17 galeones, 16 cañones, 15 globos y 2 comodines.
+_Avoid_: Figura, palo
+
+**Mazo**:
+Las tarjetas de país que todavía no recibió nadie, mezcladas y boca abajo.
+_Avoid_: Pila, baraja
+
+**Descarte**:
+Las tarjetas de país canjeadas. Cuando el mazo se acaba, el descarte se mezcla y pasa a ser el mazo.
+
+**Canje**:
+Entregar 3 tarjetas de país del mismo símbolo o de los tres símbolos distintos (el comodín vale por cualquiera) en el turno de una ronda de incorporación que no sea inicial, a cambio de ejércitos: 4 el primero de cada jugador, 7 el segundo, 10 el tercero y después 5 más cada vez.
+_Avoid_: Cambio, intercambio
+
 ## Ganar y perder
 
 **Destruir**:
-Quitarle a un jugador su último país. El jugador destruido queda eliminado de la partida.
+Quitarle a un jugador su último país. El jugador destruido queda eliminado de la partida, y quien lo destruyó se queda con sus tarjetas de país.
 _Avoid_: Matar, eliminar (como acción de otro jugador)
 
 **Objetivo común**:

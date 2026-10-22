@@ -3,6 +3,8 @@ import type { NombreDePais } from "./mapa";
 export interface FuenteDeAzar {
   sortearOrden<T>(jugadores: readonly T[]): T[];
   mezclarPaises(paises: readonly NombreDePais[]): NombreDePais[];
+  /** Mezcla tarjetas de país: el mazo al crear la partida, o el descarte cuando el mazo se acaba. */
+  mezclarTarjetas(tarjetas: readonly NombreDePais[]): NombreDePais[];
   /** Tira la cantidad de dados pedida y devuelve sus valores, del 1 al 6, en el orden en que salieron. */
   tirarDados(cantidad: number): number[];
   /**
@@ -58,6 +60,7 @@ export function reanudarFuente({ semilla, avance }: EstadoDeAzar): FuenteDeAzar 
   return {
     sortearOrden: mezclar,
     mezclarPaises: mezclar,
+    mezclarTarjetas: mezclar,
     tirarDados: (cantidad) => Array.from({ length: cantidad }, () => Math.floor(siguiente() * 6) + 1),
     reanudar: reanudarFuente,
     estado: () => ({ semilla, avance: sacados }),
@@ -71,16 +74,23 @@ export function reanudarFuente({ semilla, avance }: EstadoDeAzar): FuenteDeAzar 
  *   `[2, 0, 1]` deja primero a la tercera anotada, después a la primera y después al segundo.
  * - `primerosPaises`: los países que la mezcla deja primeros, en ese orden.
  *   El resto queda después, en el orden en que vienen.
+ * - `primerasTarjetas`: las tarjetas que cada mezcla de tarjetas deja primeras, en ese orden, si están
+ *   entre las que se mezclan. El resto queda después, en el orden en que vienen.
  * - `dados`: los valores que van saliendo, en orden, tirada tras tirada. En un ataque tira primero
  *   el atacante y después el defensor: `[6, 4, 1, 5, 4]` es el atacante 6, 4, 1 y el defensor 5, 4.
  *
  * Lo que no se fija queda sin mezclar. Su `avance` es cuántos dados de la lista ya salieron.
  */
 export function fuenteFija(
-  fijados: { ordenDeJuego?: number[]; primerosPaises?: NombreDePais[]; dados?: number[] } = {},
+  fijados: {
+    ordenDeJuego?: number[];
+    primerosPaises?: NombreDePais[];
+    primerasTarjetas?: NombreDePais[];
+    dados?: number[];
+  } = {},
   avance = 0,
 ): FuenteDeAzar {
-  const { ordenDeJuego, primerosPaises = [], dados = [] } = fijados;
+  const { ordenDeJuego, primerosPaises = [], primerasTarjetas = [], dados = [] } = fijados;
   return {
     sortearOrden(jugadores) {
       if (!ordenDeJuego) return [...jugadores];
@@ -95,9 +105,8 @@ export function fuenteFija(
         return jugador;
       });
     },
-    mezclarPaises(paises) {
-      return [...primerosPaises, ...paises.filter((pais) => !primerosPaises.includes(pais))];
-    },
+    mezclarPaises: (paises) => primeroLosFijados(primerosPaises, paises),
+    mezclarTarjetas: (tarjetas) => primeroLosFijados(primerasTarjetas, tarjetas),
     tirarDados(cantidad) {
       if (avance + cantidad > dados.length) {
         throw new Error(
@@ -112,4 +121,10 @@ export function fuenteFija(
     // No tiene semilla: su secuencia es la lista de dados.
     estado: () => ({ semilla: 0, avance }),
   };
+}
+
+/** La lista con los fijados que están en ella primero, en el orden fijado, y el resto después, como viene. */
+function primeroLosFijados<T>(fijados: readonly T[], lista: readonly T[]): T[] {
+  const primeros = fijados.filter((elemento) => lista.includes(elemento));
+  return [...primeros, ...lista.filter((elemento) => !primeros.includes(elemento))];
 }
