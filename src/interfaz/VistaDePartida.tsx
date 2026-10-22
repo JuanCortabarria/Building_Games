@@ -3,6 +3,7 @@ import type { NombreDePais } from "../motor/mapa";
 import type { Accion, Color, LadoDeLaTirada, Partida, Ronda, Tirada } from "../motor/partida";
 import { ESTILO_DE_COLOR } from "./colores";
 import { MapaEsquematico } from "./MapaEsquematico";
+import { Objetivo } from "./Objetivo";
 import { Tarjetas } from "./Tarjetas";
 
 const NOMBRE_DEL_TIPO: Record<Ronda["tipo"], string> = {
@@ -10,7 +11,19 @@ const NOMBRE_DEL_TIPO: Record<Ronda["tipo"], string> = {
   ataque: "ataque",
 };
 
-export function VistaDePartida({ partida, alCambiar }: { partida: Partida; alCambiar: (partida: Partida) => void }) {
+/**
+ * `secretosALaVista`: si se muestran las tarjetas y el objetivo del jugador en turno. En el turno de la
+ * computadora no se muestran.
+ */
+export function VistaDePartida({
+  partida,
+  alCambiar,
+  secretosALaVista = true,
+}: {
+  partida: Partida;
+  alCambiar: (partida: Partida) => void;
+  secretosALaVista?: boolean;
+}) {
   const [error, setError] = useState<string | null>(null);
   // En la ronda de ataque, si se está atacando o reagrupando, y el país propio elegido como origen.
   const [modo, setModo] = useState<"atacar" | "reagrupar">("atacar");
@@ -156,7 +169,14 @@ export function VistaDePartida({ partida, alCambiar }: { partida: Partida; alCam
         )}
       </section>
       {/* Se vuelve a armar en cada turno, para que no queden tarjetas elegidas del turno anterior. */}
-      <Tarjetas key={`${ronda.tipo} ${ronda.numero} ${enTurno.color}`} partida={partida} alAplicar={aplicar} />
+      <Tarjetas
+        key={`${ronda.tipo} ${ronda.numero} ${enTurno.color}`}
+        partida={partida}
+        alAplicar={aplicar}
+        aLaVista={secretosALaVista}
+      />
+      {/* También se vuelve a armar en cada turno, para que el objetivo empiece plegado. */}
+      {secretosALaVista && <Objetivo key={`objetivo ${ronda.tipo} ${ronda.numero} ${enTurno.color}`} partida={partida} />}
       <section>
         <h2>Orden de juego</h2>
         <ol className="orden">

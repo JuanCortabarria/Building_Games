@@ -7,8 +7,10 @@ import {
   crearPartida,
   type Color,
   type DatosDeJugador,
+  type ModoDePartida,
 } from "../motor/partida";
 import type { PartidaEnJuego } from "./guardado";
+import "./objetivos.css";
 
 /** Un jugador por anotar, y si lo maneja una persona o la computadora. */
 interface JugadorPorAnotar extends DatosDeJugador {
@@ -22,6 +24,7 @@ const JUGADORES_INICIALES: JugadorPorAnotar[] = [
 
 export function CrearPartida({ alCrear }: { alCrear: (enJuego: PartidaEnJuego) => void }) {
   const [jugadores, setJugadores] = useState<JugadorPorAnotar[]>(JUGADORES_INICIALES);
+  const [modo, setModo] = useState<ModoDePartida>("objetivosSecretos");
   const [error, setError] = useState<string | null>(null);
 
   const cambiar = (i: number, cambio: Partial<JugadorPorAnotar>) =>
@@ -41,7 +44,7 @@ export function CrearPartida({ alCrear }: { alCrear: (enJuego: PartidaEnJuego) =
       nombre: computadora && nombre.trim() === "" ? `Computadora ${i + 1}` : nombre,
       color,
     }));
-    const resultado = crearPartida(datos, fuenteConSemilla(Date.now()));
+    const resultado = crearPartida(datos, fuenteConSemilla(Date.now()), { modo });
     if (resultado.ok) {
       const computadoras = jugadores.filter((jugador) => jugador.computadora).map((jugador) => jugador.color);
       alCrear({ partida: resultado.partida, computadoras });
@@ -97,6 +100,22 @@ export function CrearPartida({ alCrear }: { alCrear: (enJuego: PartidaEnJuego) =
           Agregar jugador
         </button>
       )}
+      <fieldset className="modo-de-partida">
+        <legend>Cómo se gana</legend>
+        <label>
+          <input
+            type="radio"
+            name="modo"
+            checked={modo === "objetivosSecretos"}
+            onChange={() => setModo("objetivosSecretos")}
+          />{" "}
+          Con objetivos secretos: cada uno recibe uno al azar, y también vale ocupar 30 países
+        </label>
+        <label>
+          <input type="radio" name="modo" checked={modo === "objetivoComun"} onChange={() => setModo("objetivoComun")} />{" "}
+          Solo objetivo común: gana el primero que ocupa 30 países
+        </label>
+      </fieldset>
       <button type="button" className="principal" onClick={crear}>
         Crear partida
       </button>
