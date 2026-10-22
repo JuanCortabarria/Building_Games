@@ -49,69 +49,6 @@ button.principal {
   border: 1px solid #0003;
 }
 
-.mapa {
-  display: block;
-  /* El mapa es más ancho que el resto de la página y entra entero en la altura de la pantalla. */
-  width: min(1520px, calc(100vw - 32px));
-  max-height: calc(100vh - 32px);
-  margin-left: 50%;
-  transform: translateX(-50%);
-  font-family: system-ui, sans-serif;
-  user-select: none;
-}
-
-.mapa .nombre-de-continente {
-  font-size: 17px;
-  font-weight: bold;
-}
-
-.mapa .rotulo-de-borde {
-  font-size: 12px;
-  fill: #5b6470;
-}
-
-.limite {
-  fill: none;
-  stroke: #5b6470;
-  stroke-width: 2;
-}
-
-.limite.entre-continentes {
-  stroke-dasharray: 7 5;
-}
-
-.pais-del-mapa {
-  cursor: pointer;
-}
-
-.pais-del-mapa rect {
-  stroke: #0006;
-  stroke-width: 1;
-}
-
-.pais-del-mapa:hover rect {
-  stroke: #000;
-  stroke-width: 2.5;
-}
-
-.pais-del-mapa:focus {
-  outline: none;
-}
-
-.pais-del-mapa:focus-visible rect {
-  stroke: #000;
-  stroke-width: 4;
-}
-
-.nombre-de-pais {
-  font-size: 14px;
-}
-
-.ejercitos-de-pais {
-  font-size: 17px;
-  font-weight: bold;
-}
-
 .turno {
   padding: 8px 16px 16px;
   margin-bottom: 16px;
@@ -133,36 +70,9 @@ button.principal {
   gap: 8px;
 }
 
-.pais-del-mapa.seleccionado rect {
-  stroke: #000;
-  stroke-width: 5;
-}
-
-.pais-del-mapa.atacable rect {
-  stroke: #000;
-  stroke-width: 2.5;
-  stroke-dasharray: 6 4;
-}
-
-.pais-del-mapa.destino rect {
-  stroke: #000;
-  stroke-width: 5;
-  stroke-dasharray: 10 4;
-}
-
-.pais-del-mapa.destino-posible rect {
-  stroke: #000;
-  stroke-width: 2.5;
-  stroke-dasharray: 2 3;
-}
-
 /* El mapa con su barra entra entero en la altura de la pantalla, y la barra queda pegada arriba. */
 .seccion-del-mapa {
   --alto-de-la-barra: 128px;
-}
-
-.seccion-del-mapa .mapa {
-  max-height: calc(100vh - var(--alto-de-la-barra) - 16px);
 }
 
 .barra-del-mapa {
@@ -355,4 +265,196 @@ button.principal {
 
 .bloqueado {
   cursor: progress;
+}
+
+/* El tablero es más ancho que el resto de la página y, con la barra, entra entero en la altura de la pantalla. */
+.tablero {
+  display: block;
+  width: min(1516px, calc(100vw - 32px), (100vh - var(--alto-de-la-barra, 0px) - 24px) * 1516 / 1038);
+  aspect-ratio: 1516 / 1038;
+  height: auto;
+  margin-left: 50%;
+  transform: translateX(-50%);
+  border-radius: 10px;
+  box-shadow: 0 6px 24px #0003;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ficha {
+  cursor: pointer;
+}
+
+.ficha:focus {
+  outline: none;
+}
+
+.ficha .cuerpo {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 120ms ease-out;
+  animation: latido 380ms ease-out;
+}
+
+.ficha:hover .cuerpo,
+.ficha:focus-visible .cuerpo {
+  transform: scale(1.15);
+}
+
+.ficha .sombra {
+  fill: #0006;
+}
+
+.ficha .borde {
+  fill: #1d140a;
+}
+
+.ficha:focus-visible .borde {
+  fill: #fff;
+  stroke: #000;
+  stroke-width: 2;
+}
+
+.ficha .numero {
+  font: 800 22px system-ui, sans-serif;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+/* Los anillos llevan un fondo oscuro debajo del color, para que se vean sobre cualquier parte del tablero. */
+.ficha .anillo circle {
+  fill: none;
+}
+
+.ficha .anillo-fondo {
+  stroke: #000c;
+  stroke-width: 8.5;
+}
+
+.ficha .anillo-color {
+  stroke-width: 6;
+}
+
+.ficha.seleccionado .anillo-color {
+  stroke: #fff;
+}
+
+/* Un halo suave del color de la marca: se nota de lejos y no tapa los nombres. */
+.ficha.seleccionado .anillo {
+  filter: drop-shadow(0 0 4px #fff) drop-shadow(0 0 9px #fff);
+  animation: pulso 1.2s ease-in-out infinite;
+}
+
+.ficha.atacable .anillo {
+  filter: drop-shadow(0 0 4px #ffd21f) drop-shadow(0 0 9px #ffb300);
+}
+
+.ficha.destino .anillo,
+.ficha.destino-posible .anillo {
+  filter: drop-shadow(0 0 4px #3dffa8) drop-shadow(0 0 9px #00d27a);
+}
+
+.ficha.atacable .anillo-color {
+  stroke: #ffd21f;
+  stroke-dasharray: 10 6;
+  animation: girar 3s linear infinite;
+}
+
+.ficha.atacable .anillo-fondo {
+  stroke-dasharray: 10 6;
+  animation: girar 3s linear infinite;
+}
+
+.ficha.destino-posible .anillo-color {
+  stroke: #3dffa8;
+  stroke-dasharray: 4 5;
+}
+
+.ficha.destino .anillo-color {
+  stroke: #3dffa8;
+}
+
+.ficha.destino .anillo {
+  animation: pulso 1.2s ease-in-out infinite;
+}
+
+/* Con un origen elegido, las fichas sin marca se apagan un poco y resaltan las que se pueden elegir. */
+.tablero.con-origen .ficha:not(.seleccionado, .atacable, .destino, .destino-posible) .cuerpo {
+  opacity: 0.6;
+  filter: saturate(0.5);
+}
+
+@keyframes latido {
+  0% {
+    transform: scale(1.35);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes pulso {
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes girar {
+  to {
+    stroke-dashoffset: -32;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ficha .cuerpo,
+  .ficha .anillo,
+  .ficha .anillo circle {
+    animation: none !important;
+    transition: none;
+  }
+}
+
+/* El aviso de los ejércitos extra: qué va solo en cada continente y qué va en cualquier país. */
+.aviso-de-extra {
+  margin: 4px 0 0;
+  padding: 3px 10px;
+  border-radius: 8px;
+  border-left: 5px solid #e0a100;
+  background: #fff6d6;
+  animation: aparecer 300ms ease-out;
+}
+
+.aviso-de-extra ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.aviso-de-extra li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 2px 0;
+}
+
+.aviso-de-extra .continente {
+  flex-shrink: 0;
+  min-width: 2.2em;
+  padding: 1px 6px;
+  border-radius: 999px;
+  color: #fff;
+  font-weight: 800;
+  text-align: center;
+  text-shadow: 0 1px 1px #0006;
+}
+
+.aviso-de-extra .continente.cualquiera {
+  background: #6b6257;
+}
+
+@keyframes aparecer {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
 }
